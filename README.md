@@ -3,9 +3,6 @@
 
 > Point a projector at your ceiling. See every plane, the ISS, stars, planets and meteor showers above your exact location — in real time.
 
-**🌐 Live demo:** _add your Vercel URL here once deployed (see [Deployment](#deployment))_
-&nbsp;·&nbsp; **No install to try it** — it runs entirely in the browser.
-
 ---
 
 ## What Is OVERHEAD?
