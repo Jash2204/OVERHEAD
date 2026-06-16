@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="all">
+<title>OVERHEAD — Privacy Policy</title>
+<style>
+  @font-face{font-family:'Rajdhani';font-weight:700;font-display:swap;
+    src:url('fonts/rajdhani-latin-700-normal.woff2') format('woff2')}
+  @font-face{font-family:'Rajdhani';font-weight:600;font-display:swap;
+    src:url('fonts/rajdhani-latin-600-normal.woff2') format('woff2')}
+  @font-face{font-family:'Share Tech Mono';font-weight:400;font-display:swap;
+    src:url('fonts/share-tech-mono-latin-400-normal.woff2') format('woff2')}
+  :root{--accent:#00d4ff;--amber:#ffb347}
+  *{box-sizing:border-box}
+  body{margin:0;background:#04080f;color:#cdd6e4;font-family:'Share Tech Mono',monospace;
+    line-height:1.7;font-size:15px}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 22px 96px}
+  h1{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:.06em;color:#fff;
+    font-size:34px;margin:0 0 4px}
+  h2{font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:.05em;color:var(--accent);
+    font-size:20px;margin:34px 0 8px}
+  .sub{color:#6f8198;letter-spacing:.1em;font-size:12px;text-transform:uppercase;margin-bottom:26px}
+  a{color:var(--accent)}
+  .banner{border:1px solid rgba(255,179,71,.4);background:rgba(255,179,71,.06);
+    border-left:3px solid var(--amber);padding:12px 16px;margin:22px 0;color:#ffd9a3;font-size:13px}
+  ul{padding-left:20px}
+  li{margin:6px 0}
+  code{background:#0c1622;border:1px solid rgba(0,212,255,.2);padding:1px 6px;border-radius:3px;color:#9fe8ff}
+  footer{margin-top:48px;border-top:1px solid rgba(255,255,255,.08);padding-top:18px;color:#5e7088;font-size:12px}
+  .back{display:inline-block;margin-bottom:24px;color:#6f8198;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; OVERHEAD</a>
+  <h1>Privacy Policy</h1>
+  <div class="sub">overhead.world &middot; v9 &middot; last updated 16 June 2026</div>
+
+  <div class="banner"><strong>Note:</strong> this is a good-faith draft describing how OVERHEAD
+  actually handles data. It is not legal advice. Because OVERHEAD processes location data and
+  serves visitors internationally, have it reviewed by a qualified professional, and confirm the pre-filled operator, jurisdiction and contact details, before relying on it.</div>
+
+  <p>OVERHEAD ("the App", "we", "us") is a browser-based live sky projector at
+  <a href="https://overhead.world">overhead.world</a>, operated by Jash Patel.
+  This policy explains what data the App touches and why. OVERHEAD is designed to be
+  <strong>privacy-first and stateless</strong>: it has no user accounts, and it does not store
+  your location or build a profile of you.</p>
+
+  <h2>Location</h2>
+  <ul>
+    <li>If you allow it, the App reads your approximate position through your browser's
+      Geolocation API, purely to calculate the sky above you.</li>
+    <li>Your coordinates are processed <strong>in your browser</strong> and held only for the
+      current session. We do not save them to a database or associate them with you.</li>
+    <li>To turn coordinates into a place name, an approximate, rounded coordinate is sent to the
+      OpenStreetMap <strong>Nominatim</strong> geocoding service (via our proxy).</li>
+    <li>To show nearby aircraft, your coordinates are sent to the <strong>adsb.lol</strong>
+      aircraft-data service (via our proxy).</li>
+    <li>If you deny location, the App still works — you set a location yourself via ZENYTH, and
+      nothing is read from your device.</li>
+  </ul>
+
+  <h2>Our proxy &amp; server logs</h2>
+  <p>Requests to the data services above are forwarded through OVERHEAD's own caching proxy. As
+  with any internet service, the underlying hosting infrastructure may transiently log standard
+  request metadata (such as IP address and the requested URL) for operation and abuse-prevention.
+  This is not used to track you or build a profile, and the proxy only ever talks to two
+  allow-listed hosts (adsb.lol and Nominatim).</p>
+
+  <h2>On-device storage</h2>
+  <ul>
+    <li>The App uses your browser's local storage to remember a few preferences (e.g. render
+      scale and time-lapse settings). This stays on your device.</li>
+    <li>Time-lapse recordings are created and stored <strong>locally</strong> (your Downloads
+      folder and a private in-browser file area). They are never uploaded to us.</li>
+  </ul>
+
+  <h2>Analytics</h2>
+  <p>The <strong>only</strong> analytics OVERHEAD uses is <strong>Vercel Web Analytics</strong>,
+  the first-party, privacy-focused analytics built into our host. We use no other analytics, and no
+  advertising or behavioural tracking of any kind.</p>
+  <ul>
+    <li>It is <strong>cookieless</strong> — it sets no cookies and stores nothing on your device to
+      identify or follow you.</li>
+    <li>Visitors are counted using a temporary hash derived from the incoming request, which is
+      <strong>reset every 24 hours</strong>, so you cannot be tracked across days, sessions, or
+      other websites.</li>
+    <li>Only <strong>anonymous, aggregated</strong> figures are recorded — for example page views,
+      referrer, country and browser/device type. No IP address or personal identifier is stored
+      against this data, and an individual's browsing cannot be reconstructed from it.</li>
+  </ul>
+  <p>Full details are in Vercel's
+  <a href="https://vercel.com/docs/analytics/privacy-policy">Web Analytics privacy notice</a>.</p>
+
+  <h2>What we do <em>not</em> do</h2>
+  <ul>
+    <li>No accounts, sign-in, or passwords.</li>
+    <li>No advertising, no cross-site tracking, and no tracking cookies.</li>
+    <li>No selling or sharing of personal data.</li>
+    <li>Fonts are self-hosted — no request is made to Google Fonts or any font CDN.</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <p>When the App contacts adsb.lol or OpenStreetMap/Nominatim, those services receive the
+  request and operate under their own privacy terms. See the
+  <a href="NOTICE.md">attribution notice</a> for links.</p>
+
+  <h2>Your rights (UK/EU GDPR)</h2>
+  <p>Because the App does not store personal data about you, there is normally nothing for us to
+  retrieve, correct or erase. Where applicable, the lawful basis for reading your location is your
+  consent, which you can withdraw at any time in your browser. To make a request or ask a
+  question, contact us below. You may also complain to your local data-protection authority
+  (in the UK, the ICO).</p>
+
+  <h2>Children</h2>
+  <p>OVERHEAD is a general-audience tool and is not directed at children. It does not knowingly
+  collect personal data from anyone.</p>
+
+  <h2>Changes</h2>
+  <p>We may update this policy; the "last updated" date above reflects the current version.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about privacy: <a href="https://github.com/Jash2204">github.com/Jash2204</a>.</p>
+
+  <footer>OVERHEAD &middot; <a href="TERMS.html">Terms of Use</a> &middot;
+    <a href="NOTICE.md">Notices &amp; Attribution</a></footer>
+</div>
+</body>
+</html>
