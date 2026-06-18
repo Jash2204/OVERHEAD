@@ -39,7 +39,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(403, { 'Content-Type': 'text/plain' }); res.end('Host not allowed'); return;
   }
 
-  const opts = { headers: { 'User-Agent': 'OVERHEAD/9 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
+  const opts = { headers: { 'User-Agent': 'OVERHEAD/9.5 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
   const upstreamReq = https.get(upstreamUrl, opts, (upstream) => {
     res.writeHead(upstream.statusCode || 502, {
       'Content-Type': 'application/json',

@@ -1,5 +1,33 @@
 # OVERHEAD — Changelog
 
+## v9.5 — planetary accuracy (June 2026)
+
+A correctness and UX point release on top of v9 "CONCORD". The star/sidereal engine,
+the sacred pure-black projector path, and the data/proxy layer are otherwise unchanged.
+
+### Geocentric planet positions (accuracy fix)
+The planet ephemeris was rebuilt. The old model had two faults: a units bug that divided
+each planet's motion by an extra ~36,525×, freezing the planets near their **year-2000**
+longitudes; and it plotted each planet's *heliocentric* orbital longitude as if it were the
+*geocentric* sky position — fundamentally wrong for the inner planets. Planets are now
+computed properly: Kepler's equation is solved for each planet **and** for Earth, then
+subtracted to give the true position as seen from the ground. Result: planets appear where
+they actually are. For example, on 17 June 2026 Venus now sits beside the crescent Moon (a
+real ~0.5° conjunction) instead of ~60° away in the wrong constellation, and Saturn
+correctly drops below the horizon once it has set.
+
+### Field-of-view control
+Wide mode's default field of view was narrowed from 150° to 100°, so it reads as a natural
+"stand and look up" section of sky rather than the whole hemisphere crammed edge-to-edge. A
+**Field of View** slider (70–130°) was added to the View menu so each user can tune the
+visible section to their own ceiling. It affects wide mode only and greys out in dome mode,
+which uses a fixed full-hemisphere projection.
+
+### Collapsible control menu
+The control rail gained a **HIDE / MENU** toggle at the top that folds it to a small pill,
+freeing screen space (handy on mobile). It mirrors the existing "Up Next" collapse pattern
+and affects only the control window — the projector output is untouched.
+
 ## v9 — "CONCORD" (June 2026)
 
 A backend, security and UX pass. **No rendering or graphical changes** — the sky,

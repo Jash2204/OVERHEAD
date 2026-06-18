@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OVERHEAD v9 — Live Sky Projector</title>
+<title>OVERHEAD v9.5 — Live Sky Projector</title>
 <style>
 /* v9: self-hosted fonts — no calls to Google (GDPR: no visitor IPs leak to a third party) */
 @font-face{font-family:'Share Tech Mono';font-style:normal;font-weight:400;font-display:swap;
@@ -92,6 +92,17 @@ body.projector .loc-text{font-size:12px}
   backdrop-filter:blur(8px)}
 .ctrl-group{display:flex;flex-direction:column}
 .ctrl-sep{height:1px;background:rgba(255,255,255,0.06);margin:0}
+/* v9.5: collapsible control menu (mobile space-saver) */
+.ctrl-head{display:flex;align-items:center;justify-content:flex-end;gap:7px;
+  padding:7px 13px;cursor:pointer;user-select:none;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.16em;
+  color:rgba(127,212,255,0.7);background:rgba(0,212,255,0.05);
+  border-bottom:1px solid rgba(0,212,255,0.08)}
+.ctrl-head:hover{color:#7fd4ff;background:rgba(0,212,255,0.1)}
+.ctrl-head .ch-ico{font-size:12px;line-height:1}
+#controls.collapsed{max-height:none}
+#controls.collapsed > *:not(.ctrl-head){display:none}
+#controls.collapsed .ctrl-head{border-bottom:none}
 .btn{
   display:flex;align-items:center;gap:9px;
   padding:10px 14px;min-width:130px;
@@ -336,6 +347,17 @@ body.projector #oh-countdown{display:none}
   font-family:'Share Tech Mono',monospace}
 .grp-panel.show{display:block;animation:slideIn 0.2s ease}
 .grp-panel .ctrl-sep{height:1px;background:rgba(255,255,255,0.05);margin:0}
+/* v9.5: wide-field FOV slider */
+.fov-row{padding:9px 12px 11px;display:flex;flex-direction:column;gap:6px;transition:opacity .2s}
+.fov-row .fov-hd{display:flex;justify-content:space-between;align-items:baseline;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(255,255,255,0.55)}
+.fov-row .fov-hd #fov-val{color:#7fd4ff;font-size:10px}
+.fov-slider{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:3px;background:rgba(255,255,255,0.14);outline:none;cursor:pointer}
+.fov-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:#7fd4ff;border:0;box-shadow:0 0 6px rgba(127,212,255,0.6);cursor:pointer}
+.fov-slider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#7fd4ff;border:0;box-shadow:0 0 6px rgba(127,212,255,0.6);cursor:pointer}
+.fov-hint{font-size:7px;letter-spacing:0.08em;color:rgba(255,255,255,0.25);text-transform:uppercase}
+.fov-row.disabled{opacity:0.4}
+.fov-row.disabled .fov-slider{pointer-events:none}
+.fov-row.disabled .fov-hint{color:#7fd4ff;opacity:0.75}
 .grp-panel .btn{width:100%;min-width:0}
 .grp-caret{margin-left:8px;opacity:0.45;font-size:15px;align-self:center;transition:opacity .15s}
 .grp-btn:hover .grp-caret{opacity:0.9}
@@ -426,6 +448,10 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
 
 <!-- SIDEBAR CONTROLS -->
 <div id="controls">
+  <div class="ctrl-head" id="ctrl-head" onclick="toggleControls()" title="Collapse menu">
+    <span class="ch-lbl" id="ctrl-ch-lbl">HIDE</span>
+    <span class="ch-ico" id="ctrl-ch-ico">&#10005;</span>
+  </div>
   <!-- v8 ZENYTH — set location -->
   <div class="ctrl-group">
     <button class="btn" id="b-zenyth" style="--btn-col:#7fd4ff" onclick="zenOpen()">
@@ -553,6 +579,11 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
       <span class="btn-icon">▦</span>
       <span class="btn-label">VIEW: WIDE<span class="btn-sub">Fill screen · tap for dome</span></span>
     </button>
+    <div class="fov-row" id="fov-row">
+      <div class="fov-hd"><span>FIELD OF VIEW</span><span id="fov-val">100&deg;</span></div>
+      <input type="range" id="fov-slider" class="fov-slider" min="70" max="130" step="1" value="100" oninput="setFov(this.value)" aria-label="Field of view">
+      <div class="fov-hint">Wide mode only</div>
+    </div>
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-ambient" style="--btn-col:#9db8ff" onclick="toggleAmbient(this)">
       <span class="btn-icon">✦</span>
@@ -896,7 +927,7 @@ let lastSatSpawn = 0;
 // PROJECTION MODE: 'dome' = azimuthal equidistant (hemisphere in a circle),
 // 'wide' = rectilinear/perspective wide-field that fills the whole rectangle.
 let projMode = 'wide';   // default: fill the projector
-let fovDeg = 150;        // wide-field vertical field of view (110–170 sensible)
+let fovDeg = 100;        // wide-field vertical FOV — a natural "stand and look up" section (90–120 sensible; 150 crammed the whole sky in)
 let moonObj = null;
 let mwStars = []; // extra star sprinkle along the Milky Way band
 let projectorMode = false;
@@ -1272,29 +1303,44 @@ const PLANET_DATA = [
    L0:50.0774,L1:1223.5114,a:9.537,e:0.0542,i:2.489,node:113.666,peri:93.057},
 ];
 
+// v9.5: heliocentric ecliptic rectangular coords (AU) from Keplerian elements.
+// peri = longitude of perihelion (ϖ); node = Ω; L1 is °/century. Solving Kepler's
+// equation adds the equation of centre the old mean-longitude shortcut ignored.
+const EARTH_ELEM = {L0:100.46435, L1:36000.7698, a:1.00000, e:0.01671, i:0, node:0, peri:102.937};
+function helioRect(el, T){
+  const rad=Math.PI/180;
+  const L=((el.L0+el.L1*T)%360+360)%360;            // mean longitude (was wrongly /36525 → froze planets at J2000)
+  const M=((((L-el.peri)%360)+360)%360)*rad;         // mean anomaly
+  let E=M; for(let k=0;k<8;k++){ E=E-(E-el.e*Math.sin(E)-M)/(1-el.e*Math.cos(E)); } // Kepler solve
+  const nu=2*Math.atan2(Math.sqrt(1+el.e)*Math.sin(E/2), Math.sqrt(1-el.e)*Math.cos(E/2)); // true anomaly
+  const r=el.a*(1-el.e*Math.cos(E));                 // radius vector (AU)
+  const O=el.node*rad, inc=el.i*rad, u=nu+(el.peri-el.node)*rad; // argument of latitude
+  return { x:r*(Math.cos(O)*Math.cos(u)-Math.sin(O)*Math.sin(u)*Math.cos(inc)),
+           y:r*(Math.sin(O)*Math.cos(u)+Math.cos(O)*Math.sin(u)*Math.cos(inc)),
+           z:r*(Math.sin(u)*Math.sin(inc)) };
+}
 function buildPlanets() {
   const {jd}=getSiderealData();
   const T=(jd-2451545.0)/36525;
-  const {lst}=getSiderealData();
-  const lR=userLat*Math.PI/180;
+  const eps=23.439*Math.PI/180;
+  const E0=helioRect(EARTH_ELEM, T);                 // Earth's heliocentric position
   planets=[];
   PLANET_DATA.forEach(pd=>{
-    // Mean longitude
-    const L=((pd.L0+pd.L1*T/36525)%360+360)%360;
-    // Simplified: treat mean longitude as ecliptic longitude (rough)
-    const lon_ecl=L*Math.PI/180;
-    const lat_ecl=pd.i*Math.PI/180*Math.sin(lon_ecl-(pd.node*Math.PI/180));
-    // Ecliptic → equatorial (approx, ε=23.439°)
-    const eps=23.439*Math.PI/180;
-    const ra_rad=Math.atan2(Math.sin(lon_ecl)*Math.cos(eps)-Math.tan(lat_ecl)*Math.sin(eps),Math.cos(lon_ecl));
-    const dec_rad=Math.asin(Math.sin(lat_ecl)*Math.cos(eps)+Math.cos(lat_ecl)*Math.sin(eps)*Math.sin(lon_ecl));
-    const ra_h=((ra_rad*180/Math.PI)+360)%360/15;
+    // Geocentric vector = planet heliocentric − Earth heliocentric. This is the fix
+    // that puts inner planets (Venus/Mercury) where they ACTUALLY appear from Earth,
+    // instead of plotting their heliocentric orbital longitude as if geocentric.
+    const hp=helioRect(pd, T);
+    const xg=hp.x-E0.x, yg=hp.y-E0.y, zg=hp.z-E0.z;
+    const lam=Math.atan2(yg,xg), bet=Math.atan2(zg,Math.hypot(xg,yg));
+    const ra_rad=Math.atan2(Math.sin(lam)*Math.cos(eps)-Math.tan(bet)*Math.sin(eps),Math.cos(lam));
+    const dec_rad=Math.asin(Math.sin(bet)*Math.cos(eps)+Math.cos(bet)*Math.sin(eps)*Math.sin(lam));
+    const ra_h=(((ra_rad*180/Math.PI)+360)%360)/15;
     const dec_d=dec_rad*180/Math.PI;
     const p=raDecToScreen(ra_h,dec_d);
     if(!p) return;
     planets.push({...pd,x:p.x,y:p.y,altDeg:p.altDeg,visible:p.altDeg>0,ra:ra_h,dec:dec_d});
   });
-  document.getElementById('s-planets').textContent=planets.filter(p=>p.visible).length;
+  const el=document.getElementById('s-planets'); if(el) el.textContent=planets.filter(p=>p.visible).length;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1702,7 +1748,32 @@ function toggleProjMode(btn){
       projMode==='wide' ? 'Fill screen · tap for dome' : 'Hemisphere · tap for wide';
   }
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  syncFovCtrl();
   pushState();
+}
+
+// v9.5: user-adjustable wide-field FOV. Only affects wide mode; dome ignores fovDeg.
+function setFov(v){
+  fovDeg = +v;
+  const lbl=document.getElementById('fov-val'); if(lbl) lbl.textContent=Math.round(fovDeg)+'\u00B0';
+  buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  pushState();
+}
+function syncFovCtrl(){
+  const row=document.getElementById('fov-row'); if(!row) return;
+  const dome=(projMode==='dome');
+  row.classList.toggle('disabled', dome);
+  const sl=document.getElementById('fov-slider'); if(sl) sl.disabled=dome;
+  const hint=row.querySelector('.fov-hint'); if(hint) hint.textContent = dome ? 'Switch to wide mode to adjust' : 'Wide mode only';
+}
+
+// v9.5: collapse/expand the control menu (frees screen space, esp. on mobile).
+function toggleControls(){
+  const c=document.getElementById('controls'); if(!c) return;
+  const collapsed=c.classList.toggle('collapsed');
+  const ico=document.getElementById('ctrl-ch-ico'), lbl=document.getElementById('ctrl-ch-lbl');
+  if(ico) ico.innerHTML = collapsed ? '&#9776;' : '&#10005;'; // ☰ when collapsed, ✕ when open
+  if(lbl) lbl.textContent = collapsed ? 'MENU' : 'HIDE';
 }
 
 // SKY DARKNESS — Bortle light-pollution model. Controls star count, faint-star

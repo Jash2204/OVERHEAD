@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
   const cacheControl = ALLOW[upstream.hostname];
 
   return new Promise((resolve) => {
-    const opts = { headers: { 'User-Agent': 'OVERHEAD/9 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
+    const opts = { headers: { 'User-Agent': 'OVERHEAD/9.5 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
     const r = https.get(upstream, opts, (up) => {
       res.writeHead(up.statusCode || 502, {
         'Content-Type': 'application/json',

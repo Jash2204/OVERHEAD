@@ -2,7 +2,7 @@
 
 OVERHEAD ("the App", https://overhead.world) is built on open data and open-source
 work. This file records the attribution and licence notices that those sources
-require. It is part of the v9 release.
+require. It is part of the v9.5 release.
 
 ---
 

@@ -1,388 +1,132 @@
-# OVERHEAD
-### Live Sky Projector
+# OVERHEAD — Live Sky Projector
 
-> Point a projector at your ceiling. See every plane, the ISS, stars, planets and meteor showers above your exact location — in real time.
+> Point any projector at your ceiling and see what's actually above you, right now: live aircraft, the ISS, stars, planets, the Moon, the Milky Way and active meteor showers — computed for your exact location, in real time.
 
-> **New in v9 — CONCORD:** a streamlined control menu (every sky layer grouped one tap deep, like the time-lapse panel), plus privacy & security hardening — self-hosted fonts (no Google calls), a locked-down and edge-cached data proxy, and a smoother live-aircraft feed that runs off the render thread. Everything from v8 ZENYTH is still here: set your sky by city, dark-sky site or exact coordinates — no GPS, nothing stored.
-
-**🌐 Live demo:** _add your Vercel URL here once deployed (see [Deployment](#deployment))_
-&nbsp;·&nbsp; **No install to try it** — it runs entirely in the browser.
+**Live:** https://overhead.world &nbsp;·&nbsp; **No install, no account, no special hardware** — it runs entirely in a browser.
 
 ---
 
-## What Is OVERHEAD?
+## What it is
 
-OVERHEAD v9 is a browser-based real-time sky projector. As of v5.0 it defaults to a fully realistic rendering: aircraft appear as blinking nav-lights, the ISS as a gliding warm-white point, and the sky responds to real twilight and a configurable light-pollution level. It calculates and renders everything currently above your location — aircraft, the International Space Station, named stars, visible planets, active meteor showers and constellation lines — and displays it as a live dome projection designed to be cast onto a bedroom ceiling via a portable projector.
+OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky — including live air traffic — onto a flat ceiling. It calculates everything currently overhead (ADS-B aircraft, the International Space Station, named stars, visible planets, meteor radiants, constellation lines, the galactic plane) and draws it as a dome you cast onto a bedroom ceiling with a cheap portable projector. The whole app is a single self-contained `index.html`; live data is fetched through a small hardened proxy.
 
-It requires no account, no subscription, and no specialist hardware beyond a projector and a laptop. The entire application runs in a single HTML file served by a lightweight local Node.js proxy.
+## What makes it unique
 
----
+- **Zero hardware, zero cost.** Comparable ceiling trackers (e.g. *Skylight*) need a Raspberry Pi + an RTL-SDR radio (~$400–1,500) to receive ADS-B. OVERHEAD needs only a browser and any projector — it pulls live aircraft from an open data API instead of radio.
+- **Live traffic *and* accurate astronomy in one view** — most projects do one or the other.
+- **Privacy-first and stateless** — no account, no database, nothing about you stored anywhere.
+- **One file.** No build step, no framework, no install — it runs from a static host or even `file://`.
 
-## Features
+## Quick start
 
-| Feature | Detail |
+1. Open **overhead.world**.
+2. **ZENYTH → Location**: share GPS, or just type a city / coordinates (no GPS needed).
+3. Click **Open Sky Output** — a clean, menu-free canvas opens in a second window.
+4. Drag that window to your projector display, go fullscreen, and **drag the four corners** to match your ceiling.
+5. Hit **Start** on the control window. Done.
+
+## Features (selected)
+
+| | |
 |---|---|
-| ✈ Live Aircraft | Real ADS-B positions via adsb.lol, fetched every 90 seconds |
-| 💡 Altitude-scaled nav-lights | Plane lights grow/shrink with true slant distance — a low pass overhead reads big, a high one near the horizon small |
-| ◎ ISS Tracking | Live position updated every 5 seconds via wheretheiss.at |
-| 🛸 ISS Orbital Path | Predicted 90-minute ground track projected onto dome |
-| ★ Named Stars | 40 named stars with accurate Alt/Az positions per session |
-| ∴ Constellations | Orion, Ursa Major, Summer Triangle, Pegasus |
-| ◉ Planets | Mercury, Venus, Mars, Jupiter, Saturn — calculated via VSOP87 |
-| ☄ Meteor Showers | 8 annual showers with animated streaks from active radiants |
-| 🌌 Milky Way | Galactic plane rendered as a soft glowing band, accurate to Sagittarius |
-| ↗ Flight Paths | Great-circle trajectory arcs for any aircraft (click to view) |
-| ✨ Scintillation | Altitude-accurate star twinkling — horizon stars shimmer more |
-| ◈ Depth 3D | Parallax star layers with per-star depth |
-| ☀ Twilight Engine | Live solar altitude tints the sky through real twilight phases |
-| ◐ Sky Darkness | Bortle 1–7 light-pollution model (star density, Milky Way, horizon glow) |
-| · Satellites | Simulated LEO passes with occasional flares (visual model, not TLE) |
-| ☽ Moon | Live position + accurate phase with earthshine |
-| 🔔 Overhead Alert | Pulse alert when aircraft passes within 25km directly above |
-| ⏱ Up Next | Approximate countdowns: ISS next pass, next/active meteor shower, next constellation rise |
-| 🛰 ISS Alert | Toast + browser notification + chime when the ISS is high overhead (requires location) |
-| 🧭 First-run Tour | Guided, click-through walkthrough of every feature on first load (skippable, replayable) |
-| ⊕ Device Orientation | Dome rotates with phone compass heading |
-| ⬛ Projector Mode | Pure black background, all elements scaled for ceiling display |
-| ⛶ Open Sky Output | One-click clean window (no chrome) for dragging to a projector |
-| ▣ Render Scale | Force the live render to Auto / 1080p / 1440p / 4K, with a live FPS readout |
-| ⏺ Record Sky | Capture the clean sky as a small, sped-up time-lapse straight to Downloads — crash-safe |
+| ✈ **Live aircraft** | Real ADS-B positions (adsb.lol), polled in the background, scaled by true slant distance |
+| ◎ **ISS** | Live position + predicted 90-minute orbital ground track |
+| ★ **Stars / constellations** | Named stars at accurate Alt/Az; constellation lines; altitude-accurate scintillation |
+| ◉ **Planets / Moon** | VSOP87-computed planets; live Moon phase with earthshine |
+| ☄ **Meteor showers** | 8 annual showers, animated streaks from the correct radiant |
+| 🌌 **Milky Way** | Galactic plane as a soft band, oriented correctly to Sagittarius |
+| ☀ **Twilight engine** | Live solar altitude tints the sky through real twilight phases |
+| ◐ **Light pollution** | Bortle 1–7 model affecting star density, Milky Way and horizon glow |
+| ◈ **Depth / parallax** | Per-star depth layers for a subtle 3D feel |
+| ⦿ **Projector tools** | Corner-pin calibration, clean output window, in-browser time-lapse capture |
+
+## Architecture at a glance
+
+Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side astronomy** (VSOP87 + sidereal time) → live data via a **hardened serverless proxy** on Vercel (aircraft + geocoding) → a **two-window** design (controls in one, clean projection in the other) synced locally → deployed as **static files on Vercel's edge**, auto-published from GitHub.
 
 ---
 
-## How It Works
+## Design decisions & rationale
 
-### Dead-Reckoning Flight Simulation
-Aircraft positions are fetched from the ADS-B network every 90 seconds. Between fetches, each plane's position is advanced frame-by-frame at 60fps using its last known heading vector and ground speed — a technique called dead-reckoning, the same approach used by commercial flight trackers such as Flightradar24. Planes that fly out of the visible area disappear naturally as their simulated position moves beyond the dome boundary.
+*Why each choice was made — not just what it does.*
 
-Each aircraft's nav-lights are also scaled by its true **slant distance** (`altitude ÷ sin(elevation)`), so a low plane passing directly overhead reads large and bright while a high one near the horizon reads small — the same idea as stars being sized by magnitude, applied to apparent distance.
+### Privacy & data
 
-### Dome Projection
-All objects — stars, planes, ISS, planets — are placed using an azimuthal equidistant projection. Altitude maps to radial distance from the centre (zenith at centre, horizon at the outer ring) and azimuth maps to the angle from north. This is the same projection used in real planetarium ceilings, and means the display accurately reflects what you would see lying flat looking up.
+- **I store no user data on a server, and the bare minimum in the browser.** Under UK/EU GDPR the safest data is data you never hold: if I don't collect or persist anything personal, there's nothing to breach, no data-protection-fee exposure, and no liability. Your location is computed in your browser and never sent to or saved by me.
+- **Location is approximate and optional.** I never require precise GPS — ZENYTH lets you type a city or coordinates instead. That's data minimisation by design, and it means the app still works for anyone who declines location.
+- **I self-host the fonts.** Loading fonts from Google's CDN silently leaks every visitor's IP to Google, which is a GDPR problem; bundling the fonts locally means the site makes *zero* third-party requests for them.
+- **Analytics are cookieless.** I wanted basic traffic insight without tracking anyone, so I use a cookieless analytics that identifies visitors by a hash reset every 24 hours — no cross-site or cross-day tracking — and I disclose exactly that in the privacy policy.
 
-### Star & Planet Positions
-Star positions are calculated per-session using Greenwich Sidereal Time derived from the current Julian Date. Right Ascension and Declination (RA/Dec) are converted to Altitude and Azimuth (Alt/Az) relative to the user's GPS coordinates. Planet positions use a simplified VSOP87 model accurate to approximately 1 degree. Both update every 60 seconds as Earth rotates.
+### Rendering & performance
 
-### ISS Orbital Path
-The ISS ground track is propagated 90 minutes forward from the current position using a simplified circular orbit model at 51.6° inclination, accounting for Earth's rotation. The result is a fading dotted arc across the dome showing where the ISS will be.
+- **Canvas2D, deliberately — not WebGL/Three.js.** Keeping the whole app one dependency-free file that runs from any static host (or `file://`) with no build step was worth more to me than raw GPU throughput, and a projector's low throw resolution means the GPU was never my bottleneck. The cost is more work on the main thread, which I mitigate below.
+- **Expensive static layers are pre-rendered once.** Redrawing the full star field and Milky Way every frame is wasteful, so I render them to offscreen canvases once and composite, keeping the per-frame loop cheap.
+- **Live aircraft are fetched and parsed in a Web Worker.** Polling ADS-B and parsing the JSON on the main thread caused visible stutter; moving it to a worker keeps the render loop smooth, with an inline fallback for environments where workers aren't available.
+- **The entire engine reads time through one function.** Every celestial body derives its position from a single `getSiderealData()` containing the only `new Date()` call — so adding features like location/time spoofing became a *one-line* global offset instead of touching dozens of call sites.
 
-### Recording the Sky (Time-lapse)
-**Record Sky** captures the clean sky canvas — the same un-warped view sent to the projector — as a true time-lapse. Rather than recording in real time, it grabs one frame every few seconds and stamps the frames for smooth 30 fps playback, so an hour of sky compresses to roughly a minute of video at a fraction of the file size. Frames are encoded on the fly with the browser's native **WebCodecs** `VideoEncoder` (VP9 by default, AV1 optional for even smaller files) and muxed into WebM. Resolution runs up to **3840×2160 (4K)**; because the sky is drawn procedurally, selecting 4K (ideally with Render Scale set to 4K) re-renders genuine detail rather than upscaling a lower-resolution capture.
+### Projection (physical-world constraints)
 
-The hard part — *not losing the recording if the tab is closed unexpectedly* — is handled by writing every encoded chunk straight to an **Origin-Private File System (OPFS)** file from a background worker as it's produced. Because the file on disk is always current, an interrupted session leaves a valid, playable clip behind. On the next launch OVERHEAD detects it and offers **Save to Downloads** or **Discard**. When you stop normally, the finished clip downloads automatically.
+- **The projector output path is locked to pure `#000000`.** Any non-black background throws a visibly glowing rectangle on the ceiling, so the projection path never applies a non-black fill — a hardware reality dictating a hard code rule.
+- **Two windows: controls and a clean output.** The projected image has to be free of menus and cursor movement, so I split control and output into separate windows and sync state locally via `postMessage` (with a `BroadcastChannel` backup) — sub-millisecond, no server round-trip.
+- **Calibration uses a real homography.** Ceilings are rarely square to the projector, so four draggable corners feed a verified 3×3 homography (corner-pin) transform, keeping straight horizons and round planets un-skewed on a slanted surface.
 
-Capability is detected and degraded gracefully: full crash-safe time-lapse where WebCodecs + OPFS are available (Chromium on https/localhost), an in-memory time-lapse where OPFS isn't, and a basic real-time MediaRecorder capture as a last resort. Notes: keep the OVERHEAD tab visible while recording (a backgrounded tab is throttled by the browser and won't render new frames), and recovered clips play fine but may not report a seek duration since they were never finalised.
+### Data & accuracy
 
-### Render Scale & 4K
-The whole scene is drawn procedurally, so it can be rendered at any internal resolution rather than upscaled. The **Render Scale** control forces the control window's backing-store resolution to Auto, 1080p, 1440p or 4K, with a live frame-rate readout baked into the button so the cost is always visible. "Auto" keeps the native pixel density (capped at 2×); on a 4K display that already means a genuine 4K render. The projector **output window always stays on Auto**, so raising the control-window scale never burdens the projected image. Paired with the recorder's 4K option, this produces true 4K time-lapses with real detail instead of interpolated pixels.
+- **Astronomy is computed client-side (VSOP87 + sidereal time).** Calculating planet, Sun and twilight positions in the browser keeps the app private and serverless and avoids paying for an ephemeris API.
+- **Live data comes from open APIs (adsb.lol for aircraft, Nominatim for geocoding — both ODbL).** Free, open data with no hardware is the core differentiator from radio-based trackers; the attribution obligations are met in `NOTICE.md`.
+- **The proxy is hardened, not a passthrough.** It's locked to an allowlist of only those two data hosts (so it can't be abused as an open relay), edge-cached to respect Nominatim's ~1 request/second policy and to scale cheaply, and sends a proper identifying `User-Agent` as that policy requires.
 
-### CORS Proxy
-Browser security policy (CORS) prevents direct calls to third-party APIs like adsb.lol. A minimal Node.js proxy (`proxy.js`) runs locally on port 3001, forwarding ADS-B requests server-side and returning the response with the correct CORS headers. This is a standard pattern for browser-based applications consuming external APIs.
+### Cost, deployment & licensing
 
----
-
-## Quick Start
-
-### Requirements
-- Node.js installed
-- A modern browser (Chrome recommended)
-- For ceiling projection: any portable projector (200+ ANSI lumens recommended)
-
-### Running the App
-
-1. Place `index.html` and `proxy.js` in the same folder
-2. Open a terminal in that folder
-3. Start the proxy:
-```bash
-node proxy.js
-```
-4. In a second terminal, serve the app:
-```bash
-npx serve .
-```
-5. Open Chrome and navigate to:
-```
-http://localhost:3000/index.html
-```
-
-### One-Click Launch (Windows)
-Double-click `START.bat` — opens the proxy, the server, and the browser automatically.
+- **A single static file on Vercel's edge, auto-deployed from GitHub.** As a student with effectively no budget, a stateless static app on a free edge/CDN tier has no servers to run or scale, and the GitHub→Vercel link gives me deploys with no CI to maintain.
+- **AGPL-3.0 with a commercial dual-licence.** Open-sourcing it maximises adoption and is honest portfolio evidence; AGPL's network-use clause means anyone embedding OVERHEAD in a closed product or service must either open-source their work *or* buy a commercial exemption from me — preserving a future revenue path while I (sole copyright holder) retain the right to grant it.
 
 ---
 
-## Deployment
+## Limitations — and why I haven't addressed them yet
 
-OVERHEAD ships ready to deploy to **Vercel** — the repo already contains `vercel.json`
-and a serverless proxy at `api/proxy.js`, so there is no build step and no configuration
-to write. The static `index.html` is served as-is, and the proxy runs as a serverless
-function at `/api/proxy`.
+I'd rather be honest about the edges than hide them.
 
-### Deploy to Vercel (recommended)
-
-1. Push this repo to GitHub (see [Pushing a New Version](#pushing-a-new-version) below).
-2. Go to [vercel.com](https://vercel.com), **Add New → Project**, and import the repo.
-3. Leave every setting at its default — there is **no build command** and **no output
-   directory** to set; it's a static site plus one serverless function.
-4. Click **Deploy**. Within a minute you'll get a `https://<your-project>.vercel.app` URL.
-5. Put that URL in the **Live demo** line at the top of this README.
-
-That's it. No environment variables, no secrets.
-
-**Why it "just works":** the app tries data sources in order — `/api/proxy` first, then a
-local `localhost:3001` proxy, then direct, then public fallbacks. On Vercel the first one
-resolves to `api/proxy.js`; running locally it falls through to your `proxy.js`. The same
-`index.html` therefore runs unmodified in both places.
-
-**Recording works live:** because Vercel serves over **HTTPS** (a secure context), the
-WebCodecs encoder and the OPFS crash-recovery store are both available, so *Record Sky*
-and its interrupted-session recovery work fully on the deployed site — not just on
-`localhost`.
-
-### Other hosts
-- **Any static host + serverless platform** (Netlify, Cloudflare Pages, etc.): serve
-  `index.html` statically and deploy `api/proxy.js` as a function at the `/api/proxy`
-  path. Adjust the platform's function routing if it differs.
-- **Any Node host**: run `proxy.js` (port 3001) alongside a static server. The app's
-  source list will use the local proxy automatically.
-- **`file://` (no server):** the sky still renders, but WebCodecs/OPFS are disabled, so
-  recording falls back to a basic in-memory capture and crash-recovery is off.
+- **No full daytime sky.** Deliberate: it's a *night-sky* ceiling projector, and a blue daylight sky is pointless on a ceiling. The solar-altitude groundwork is already in place if I change my mind.
+- **Satellites are a simulated visual model, not a live TLE/SGP4 feed.** A real two-line-element feed plus an orbital propagator is on the list, but it adds weight and another data dependency for limited visible payoff — so it's deferred, not abandoned.
+- **Overnight projection can be cut short by OS display sleep.** Browser tab-throttling isn't the problem (the output window stays visible), but the operating system can still sleep the display; I haven't yet wired up the Screen Wake Lock API to hold it awake.
+- **Aircraft are stylised nav-light points today.** A self-modelled 3D Boeing 777-300ER plus a library of category silhouettes (airliner, widebody, helicopter, GA, business jet…) is the headline of v10 — this is effort/time, not budget; I'm building the model from scratch in Blender.
+- **Southern-hemisphere constellation content is incomplete** (e.g. Crux, the Magellanic Clouds) — a content/time gap rather than an architectural one.
+- **Public Nominatim caps at ~1 request/second.** Caching keeps me comfortably inside that at current scale; if the site got popular I'd self-host Nominatim or move to a paid geocoder — a cost I'm deliberately deferring until there's demand to justify it.
+- **No volumetric clouds yet.** A raymarched cloudscape is designed but shelved: it carries real per-frame GPU cost and conflicts with the pure-black ceiling path.
+- **No automated test/CI suite.** As a solo project built fast, my QA is field-testing on a real ceiling. I'd add CI before accepting outside contributions.
 
 ---
 
-## Pushing a New Version
+## Tech stack
 
-```bash
-# from the repo root
-git add -A
-git commit -m "OVERHEAD v9 — CONCORD: grouped controls, security & privacy hardening, smoother live data"
-git push origin main
-```
+Vanilla HTML/CSS/JS (single file) · Canvas2D · Web Workers · WebCodecs + webm-muxer (in-browser time-lapse) · VSOP87 astronomy · Vercel (static hosting + serverless proxy) · adsb.lol & Nominatim/OpenStreetMap data.
 
-If the project is linked to Vercel, the push **auto-deploys** — the new version is live
-within a minute. To verify a release before pushing: run it locally (Quick Start), record
-a short clip, and confirm it plays; that exercises the full encode → mux → OPFS → download
-path on real hardware.
-
----
-
-
-
-## Projecting Onto Your Ceiling
-
-1. Run OVERHEAD via `npx serve .` and the proxy (see Quick Start) so it loads on `localhost`
-2. Plug in your projector and set your display to **Extend** (Windows: Win+P → Extend)
-3. Click **Open Sky Output** in the sidebar — a clean black sky window appears
-4. Drag that window onto the projector display
-5. Click anywhere in it to go fullscreen — zero browser UI, just the sky
-6. Adjust layers, location, or orientation in the main control window; the projection updates live
-
-On `localhost` over a secure context, OVERHEAD may offer to auto-place the output on the projector for you. From `file://` it falls back to the drag-and-click flow above.
-
-## Controls
-
-| Button | Function |
-|---|---|
-| ★ Stars | Toggle star field (named + background) |
-| ∴ Constellations | Toggle constellation lines |
-| ◉ Planets | Toggle visible planets |
-| ☄ Meteor Showers | Toggle active shower radiants and streaks |
-| ✈ Aircraft | Toggle live plane tracking |
-| ◎ ISS | Toggle ISS and orbital path |
-| 〜 Motion Trails | Toggle fade trails behind moving objects |
-| T Labels | Toggle names on all objects |
-| ⊕ Device Orient | Rotate dome with phone compass |
-| ⬛ Projector Mode | Pure black background, scaled for ceiling display |
-| ⛶ Open Sky Output | Clean chrome-free projection window, click to fullscreen |
-| ▣ Render Scale | Cycle internal resolution (Auto / 1080p / 1440p / 4K) with a live FPS readout |
-| ⏺ Record Sky | Start/stop a time-lapse recording of the sky to your Downloads folder |
-| ⚙ Time-lapse Settings | Speed (frames/sec captured), playback fps, resolution, quality, codec |
-| ↺ Refresh Data | Force immediate data fetch |
-
-Click any plane, planet, or the ISS to open a detail panel with live telemetry.
-
----
-
-## Data Sources
-
-| Source | Data | Refresh Rate |
-|---|---|---|
-| adsb.lol | Aircraft positions (ADS-B) | Every 90 seconds |
-| wheretheiss.at | ISS position | Every 5 seconds |
-| Browser Geolocation API | User coordinates | On load |
-| Nominatim (OpenStreetMap) | Reverse geocoding | On load |
-| Calculated (VSOP87) | Planet positions | Every 60 seconds |
-| Calculated (GST) | Star positions | Every 60 seconds |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│              Browser (Chrome)               │
-│                                             │
-│  index.html                        │
-│  ├── HTML5 Canvas (60fps render loop)       │
-│  ├── Dome projection engine                 │
-│  ├── Dead-reckoning simulation              │
-│  ├── Star/planet position calculator        │
-│  ├── Meteor shower engine                   │
-│  └── ISS orbital propagator                │
-│               │                             │
-│               │ fetch (localhost:3001)      │
-└───────────────┼─────────────────────────────┘
-                │
-┌───────────────▼─────────────────────────────┐
-│           proxy.js (Node.js)                │
-│           localhost:3001                    │
-│                                             │
-│  Forwards ADS-B requests server-side        │
-│  Adds CORS headers to response              │
-└───────────────┬─────────────────────────────┘
-                │
-                ▼
-        api.adsb.lol (ADS-B Network)
-        wheretheiss.at (ISS API)
-```
-
----
-
-## Technical Stack
-
-- **Frontend:** Vanilla JavaScript, HTML5 Canvas API
-- **Rendering:** Custom azimuthal equidistant dome projection at 60fps
-- **Astronomy:** Greenwich Sidereal Time, RA/Dec → Alt/Az, simplified VSOP87
-- **Flight Data:** ADS-B Network via adsb.lol
-- **ISS Data:** wheretheiss.at public API
-- **Location:** Browser Geolocation API + Nominatim reverse geocoding
-- **Proxy:** Node.js HTTP server (12 lines, zero dependencies)
-- **Recording:** WebCodecs (VP9/AV1) + webm-muxer, durable writes via OPFS + Web Worker
-- **Fonts:** Google Fonts (Share Tech Mono, Rajdhani)
-
----
-
-## For Developers — Notable Engineering
-
-OVERHEAD is a single ~5,000-line `index.html` with one inlined dependency and a 25-line
-proxy, but several parts are less trivial than they look:
-
-- **Dead-reckoning at 60 fps.** ADS-B updates arrive only every 90 s, but planes move
-  smoothly because each one is advanced every frame from its last heading/ground-speed
-  vector — the same technique commercial trackers use — then reconciled on the next fetch.
-
-- **Azimuthal-equidistant dome projection.** Everything (stars, planets, ISS, planes,
-  Moon) is placed by mapping altitude → radius and azimuth → angle, so the screen reads
-  correctly when you lie back and look up. A closed-form inverse (`elevAtScreen`) recovers
-  the elevation angle for any pixel, which drives the altitude-scaled nav-lights.
-
-- **Dual-window projection with corner-pin calibration.** "Open Sky Output" launches a
-  second, chrome-free instance (`?mode=output`) kept in sync via `postMessage` /
-  `BroadcastChannel`. That window applies its own draggable four-corner homography
-  (a CSS `matrix3d`) so the image fits an off-axis ceiling — the manual, more robust
-  equivalent of a throw-distance/keystone calculator. The control window keeps the
-  **clean, un-warped** sky, which is what the recorder captures.
-
-- **Crash-safe time-lapse recording.** Frames are grabbed on a timer, encoded with the
-  native WebCodecs `VideoEncoder`, muxed by an inlined `webm-muxer` in *streaming* mode,
-  and every chunk is flushed to an **OPFS** file from a Web Worker as it's produced — so
-  an interrupted tab leaves a valid, recoverable clip. Capability is tiered: WebCodecs +
-  OPFS (crash-safe) → WebCodecs in-memory → MediaRecorder. *(Implementation note: the muxer
-  emits its EBML header at construction, before the storage worker opens, so writes that
-  arrive pre-storage are buffered and drained once the file is ready — otherwise the header
-  is lost and the file won't play.)*
-
-- **Resolution-independent rendering.** A single effective-DPR value drives the canvas
-  backing store and all offscreen layers, so the whole scene can be re-rendered at 4K
-  natively (not upscaled) while the projector output window stays efficient on Auto.
-
-- **Surgical, patch-based development.** Features are applied as anchor-based Python patch
-  scripts (see `patch/`) rather than hand-edits, so every change is small, reviewable, and
-  reproducible against a known base file.
-
----
-
-## Credits & Third-Party Code
-
-OVERHEAD is built to stay a single, offline-capable HTML file, so its one bundled
-dependency is inlined directly into `index.html` with full attribution:
-
-- **[webm-muxer](https://github.com/Vanilagy/webm-muxer)** by *Vanilagy* — MIT License.
-  Used to mux the WebCodecs-encoded frames into a WebM container for the Record Sky
-  time-lapse feature. The library is included verbatim and credited in-file.
-
-All astronomy, dead-reckoning, projection and rendering code is original. Live data
-is provided by adsb.lol (ADS-B), wheretheiss.at (ISS), and Nominatim/OpenStreetMap
-(reverse geocoding).
-
----
-
-## Project Structure
+## Project layout
 
 ```
 OVERHEAD/
-├── index.html                  # The entire app (render engine, UI, recorder — inlined)
-├── proxy.js                    # Local CORS proxy for development (Node.js, port 3001)
-├── api/
-│   └── proxy.js                # Serverless CORS proxy for Vercel (/api/proxy)
-├── vercel.json                 # Vercel deploy config (zero build step)
-├── START.bat                   # Windows one-click launcher
-├── QUICKSTART.md               # Short setup guide
-├── README.md                   # This file
-├── CHANGELOG.md                # Version history
-├── LICENSE.txt                 # GNU AGPL-3.0 + commercial dual-licence
-├── THIRD-PARTY-LICENSES/
-│   └── webm-muxer-LICENSE.txt  # MIT license for the inlined muxer
-└── patch/                      # Anchor-based patch scripts used to build features
+├── index.html              # the entire app (UI, rendering, astronomy, sync)
+├── api/proxy.js            # Vercel serverless proxy (allowlisted + edge-cached)
+├── proxy.js                # local dev proxy (Node)
+├── fonts/                  # self-hosted fonts (no third-party CDN calls)
+├── vercel.json             # deploy config
+├── PRIVACY.html            # privacy policy
+├── TERMS.html              # terms of use (incl. safety disclaimer)
+├── NOTICE.md               # third-party attributions (ODbL, OFL, MIT)
+├── LICENSE.txt             # GNU AGPL-3.0 + commercial dual-licence
+├── CHANGELOG.md
+└── README.md
 ```
-
----
-
-## Roadmap
-
-- [ ] Keystone correction for angled projector placement
-- [ ] First-run setup wizard
-- [x] Milky Way band (v3.1)
-- [x] Atmospheric scintillation (v3.1)
-- [x] Flight path arcs (v3.1)
-- [ ] Cinematic long trails and breathing glow animations
-- [ ] Click-to-track: dedicated ring follows selected plane
-- [ ] Tap dome to read Alt/Az at any point
-- [x] Clean projection output window (v3.2)
-- [x] Record the sky as a crash-safe time-lapse (v7.5)
-- [x] Grouped control menu + security/privacy hardening + off-thread aircraft feed (v9)
-- [ ] Auto-hiding UI (fades after 5s inactivity)
-- [ ] START.bat one-click Windows launcher
-- [ ] Cloud-hosted proxy for zero-setup sharing
-- [ ] Mobile companion app (Device Orientation)
-
----
 
 ## License
 
-OVERHEAD's own source code is **free and open-source software**, licensed under the
-**GNU Affero General Public License v3.0 (AGPL-3.0)**. You may use, study, modify,
-self-host and share it under those terms. Note the AGPL's network-use clause: if you
-distribute OVERHEAD or run a **modified** version as a hosted service, you must make the
-complete corresponding source available to those users under the same licence.
+OVERHEAD's source is free and open-source under the **GNU AGPL-3.0**, with a separate **commercial licence** available for proprietary use — see [`LICENSE.txt`](LICENSE.txt). Third-party components and data remain under their own licences — see [`NOTICE.md`](NOTICE.md).
 
-OVERHEAD is **dual-licensed**. A separate **commercial licence** is available for uses the
-AGPL does not permit — for example, embedding OVERHEAD in a closed-source product, or
-running a modified version as a service without releasing your source. As the sole
-copyright holder, Jash Patel can grant such licences; contact
-[github.com/Jash2204](https://github.com/Jash2204).
+## Credits
 
-Third-party components (e.g. webm-muxer under MIT, the fonts under the SIL OFL, and
-aircraft/map data under the ODbL) remain under their own licences — see
-[`LICENSE.txt`](LICENSE.txt) and [`NOTICE.md`](NOTICE.md).
-
----
+Live aircraft data © adsb.lol contributors (ODbL). Geocoding © OpenStreetMap contributors via Nominatim (ODbL). ISS positions via wheretheiss.at. Planetary theory: VSOP87. Time-lapse muxing: webm-muxer (MIT). Fonts under the SIL Open Font License. Full notices in [`NOTICE.md`](NOTICE.md).
 
 ## Author
 
-**Jash Patel** — Computer Science, Aston University
-Copyright © 2026 Jash Patel. Licensed under the GNU AGPL-3.0 — see the License section above and `LICENSE.txt`.  
-GitHub: [github.com/Jash2204](https://github.com/Jash2204)
-
----
-
-*OVERHEAD is an independent personal project. Not affiliated with any aviation authority, space agency, or mapping service.*
+Built by **Jash Patel** — [github.com/Jash2204](https://github.com/Jash2204).
