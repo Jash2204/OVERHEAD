@@ -66,8 +66,9 @@
   <p>Requests to the data services above are forwarded through OVERHEAD's own caching proxy. As
   with any internet service, the underlying hosting infrastructure may transiently log standard
   request metadata (such as IP address and the requested URL) for operation and abuse-prevention.
-  This is not used to track you or build a profile, and the proxy only ever talks to two
-  allow-listed hosts (adsb.lol and Nominatim).</p>
+  This is not used to track you or build a profile, and the proxy only ever talks to three
+  allow-listed hosts (adsb.lol, wheretheiss.at and Nominatim). Routing the ISS feed through
+  the proxy also keeps your IP address off that provider.</p>
 
   <h2>On-device storage</h2>
   <ul>
@@ -103,8 +104,8 @@
   </ul>
 
   <h2>Third-party services</h2>
-  <p>When the App contacts adsb.lol or OpenStreetMap/Nominatim, those services receive the
-  request and operate under their own privacy terms. See the
+  <p>When the App contacts adsb.lol, wheretheiss.at or OpenStreetMap/Nominatim, those services
+  receive the request and operate under their own privacy terms. See the
   <a href="NOTICE.md">attribution notice</a> for links.</p>
 
   <h2>Your rights (UK/EU GDPR)</h2>

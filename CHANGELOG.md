@@ -28,6 +28,22 @@ The control rail gained a **HIDE / MENU** toggle at the top that folds it to a s
 freeing screen space (handy on mobile). It mirrors the existing "Up Next" collapse pattern
 and affects only the control window — the projector output is untouched.
 
+### Unified, resilient data path
+All three live feeds now share one routing policy. Previously only the aircraft feed went
+through the hardened proxy; the **ISS and reverse-geocoding calls hit their upstreams
+directly from the browser**, which meant they skipped the proxy's edge cache, leaked the
+visitor's IP to those hosts, and — most importantly — **had no request timeout**. A single
+stalled connection (captive portal, restrictive firewall) could freeze the loader forever
+at "FETCHING ISS POSITION". Now every upstream (aircraft, ISS, geocoding) flows through the
+same time-boxed ladder: **hardened Vercel proxy → local-dev proxy → direct fallback**, so
+the app stays private and cached on the live site yet still runs from `file://` or any
+plain static host. `api.wheretheiss.at` was added to the proxy allowlist (short cache TTL,
+matching the aircraft feed) to make this possible.
+
+### Repository tidy
+Removed the internal `patch/` build scripts from the published tree — they were
+development-only artifacts and aren't needed to run, host, or modify OVERHEAD.
+
 ## v9 — "CONCORD" (June 2026)
 
 A backend, security and UX pass. **No rendering or graphical changes** — the sky,

@@ -24,9 +24,15 @@ available under the Open Data Commons / CC BY-SA terms as applicable.
 - Licence: https://www.openstreetmap.org/copyright
 - Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 
-OVERHEAD respects the Nominatim usage policy: requests are rate-limited and
-coordinate-rounded client-side, cached, sent with an identifying `User-Agent`,
-and routed through OVERHEAD's own caching proxy.
+OVERHEAD respects the Nominatim usage policy: requests are coordinate-rounded
+client-side (~100 m), edge-cached, sent with an identifying `User-Agent`, and
+routed through OVERHEAD's own caching proxy.
+
+### ISS position — wheretheiss.at
+Live International Space Station position is provided by **wheretheiss.at**, a free
+public API, routed through OVERHEAD's caching proxy (short cache TTL) like the
+aircraft and geocoding feeds.
+- Source: https://wheretheiss.at
 
 ---
 

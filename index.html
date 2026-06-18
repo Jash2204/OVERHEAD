@@ -1530,28 +1530,73 @@ function drawSatellites(now){
 }
 
 // ═══════════════════════════════════════════════════════
+// FETCH — allowlisted upstreams via the hardened proxy
+// ═══════════════════════════════════════════════════════
+// Every live upstream (aircraft, ISS, geocoding) is one of the hosts the proxy
+// allowlists, so they all share one routing policy:
+//   1. OVERHEAD's hardened, edge-cached Vercel proxy — the live data path. It
+//      carries the identifying User-Agent the providers' policies require, hides
+//      the visitor's IP from the upstreams, and lets the edge serve many nearby
+//      users from a single upstream call.
+//   2. The local-dev proxy (proxy.js) so `localhost` behaves like production.
+//   3. A direct call as a last resort, so the app still works from file:// or a
+//      plain static host with no proxy (the upstreams send permissive CORS).
+// Each attempt is time-boxed so a stalled connection can never freeze boot.
+// (The aircraft feed runs this same ladder inside a Worker — see buildPlaneSources.)
+function proxiedCandidates(upstreamUrl){
+  const enc=encodeURIComponent(upstreamUrl);
+  const origin=(location.protocol==='file:')?'':location.origin;
+  return [
+    `${origin}/api/proxy?url=${enc}`,      // 1. Vercel proxy (primary live, edge-cached)
+    `http://localhost:3001/?url=${enc}`,   // 2. local dev proxy
+    upstreamUrl,                           // 3. direct fallback (upstream sends CORS)
+  ];
+}
+async function fetchAllowlistedJSON(upstreamUrl, timeoutMs){
+  for(const u of proxiedCandidates(upstreamUrl)){
+    try{
+      const r=await fetch(u,{signal:AbortSignal.timeout(timeoutMs)});
+      if(!r.ok) continue;
+      const j=await r.json();
+      if(j) return j;
+    }catch(_){}
+  }
+  return null;
+}
+
+// Resolve a lat/lon to a place name (Nominatim, via the proxy ladder above).
+// Coordinates are rounded to ~100 m first: that's ample for a city/town name, but
+// it sends a less precise location to Nominatim (privacy) and lets the edge cache
+// coalesce nearby lookups into one upstream call (kinder to its ~1 req/s policy).
+async function reverseGeocode(lat, lon){
+  const rlat=(+lat).toFixed(3), rlon=(+lon).toFixed(3);
+  return fetchAllowlistedJSON(`https://nominatim.openstreetmap.org/reverse?lat=${rlat}&lon=${rlon}&format=json`, 8000);
+}
+
+// ═══════════════════════════════════════════════════════
 // FETCH — ISS
 // ═══════════════════════════════════════════════════════
 async function fetchISS() {
-  try {
-    const r=await fetch('https://api.wheretheiss.at/v1/satellites/25544');
-    const d=await r.json();
-    const now=performance.now();
-    if(!iss){
-      iss={lat:d.latitude,lon:d.longitude,alt:d.altitude,vel:d.velocity,
-           vx:0,vy:0,trail:[],lastUpdate:now};
-    }
-    const np=geoToScreen(d.latitude,d.longitude,d.altitude*1000);
-    const op=geoToScreen(iss.lat,iss.lon,iss.alt*1000);
-    const dt=now-iss.lastUpdate;
-    if(dt>500){iss.vx=(np.x-op.x)/dt;iss.vy=(np.y-op.y)/dt;}
-    iss.lat=d.latitude;iss.lon=d.longitude;iss.alt=d.altitude;iss.vel=d.velocity;
-    iss.lastUpdate=now;
-    document.getElementById('s-iss').textContent='LIVE';
-  } catch {
+  const d=await fetchAllowlistedJSON('https://api.wheretheiss.at/v1/satellites/25544', 10000);
+  if(!d || typeof d.latitude!=='number'){
+    // Offline / slow / blocked: fall back to an estimated position so the dot
+    // still appears, and flag it as EST rather than LIVE.
     if(!iss) iss={lat:userLat+5,lon:userLon+5,alt:408,vel:27600,vx:0,vy:0,trail:[],lastUpdate:performance.now()};
     document.getElementById('s-iss').textContent='EST';
+    return;
   }
+  const now=performance.now();
+  if(!iss){
+    iss={lat:d.latitude,lon:d.longitude,alt:d.altitude,vel:d.velocity,
+         vx:0,vy:0,trail:[],lastUpdate:now};
+  }
+  const np=geoToScreen(d.latitude,d.longitude,d.altitude*1000);
+  const op=geoToScreen(iss.lat,iss.lon,iss.alt*1000);
+  const dt=now-iss.lastUpdate;
+  if(dt>500){iss.vx=(np.x-op.x)/dt;iss.vy=(np.y-op.y)/dt;}
+  iss.lat=d.latitude;iss.lon=d.longitude;iss.alt=d.altitude;iss.vel=d.velocity;
+  iss.lastUpdate=now;
+  document.getElementById('s-iss').textContent='LIVE';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3190,11 +3235,9 @@ async function init() {
     const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:7000,enableHighAccuracy:true}));
     userLat=pos.coords.latitude; userLon=pos.coords.longitude;
     OH.precise=true; OH.accuracy=(typeof pos.coords.accuracy==='number')?pos.coords.accuracy:null;
-    try{
-      const geo=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLon}&format=json`);
-      const gd=await geo.json();
-      locationName=gd.address?.city||gd.address?.town||gd.address?.county||'Your Location';
-    }catch{}
+    const gd=await reverseGeocode(userLat,userLon);
+    const a=gd&&gd.address;
+    if(a) locationName=a.city||a.town||a.county||'Your Location';
   } catch { OH.locDenied=true; locationName='Location not set'; setLoad('LOCATION DENIED · SET IT YOURSELF',20); await new Promise(r=>setTimeout(r,800)); }
   updateLocReadout();
   setLoad('CALCULATING STAR POSITIONS',35);
@@ -3308,12 +3351,11 @@ function applyLocation(lat,lon,name,opts){
     ohToast('REMOTE DARK-SKY SITE','This spot is far from any airfield, so expect little or no live air traffic overhead — the stars more than make up for it.','#7fd4ff');
   }
   if(opts.geocode){
-    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLon}&format=json`)
-      .then(r=>r.json()).then(g=>{
-        const a=(g&&g.address)||{};
-        const nm=a.city||a.town||a.village||a.county||a.state||a.country;
-        if(nm){ locationName=nm; updateLocReadout(); if(typeof zenUpdateReadout==='function') zenUpdateReadout(); if(typeof pushState==='function') pushState(); }
-      }).catch(()=>{});
+    reverseGeocode(userLat,userLon).then(g=>{
+      const a=(g&&g.address)||{};
+      const nm=a.city||a.town||a.village||a.county||a.state||a.country;
+      if(nm){ locationName=nm; updateLocReadout(); if(typeof zenUpdateReadout==='function') zenUpdateReadout(); if(typeof pushState==='function') pushState(); }
+    });
   }
 }
 

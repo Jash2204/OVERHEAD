@@ -17,6 +17,7 @@ const PORT = process.env.PORT || 3001;
 
 const ALLOW = {
   'api.adsb.lol':                 's-maxage=10, stale-while-revalidate=20',
+  'api.wheretheiss.at':           's-maxage=5,  stale-while-revalidate=15',
   'nominatim.openstreetmap.org':  's-maxage=86400, stale-while-revalidate=604800',
 };
 
@@ -56,6 +57,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`OVERHEAD proxy running on http://localhost:${PORT}`);
-  console.log('Allowlisted hosts only: api.adsb.lol, nominatim.openstreetmap.org');
+  console.log('Allowlisted hosts only: api.adsb.lol, api.wheretheiss.at, nominatim.openstreetmap.org');
   console.log('Leave this window open. Ctrl-C to stop.');
 });

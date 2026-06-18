@@ -14,9 +14,12 @@ const https = require('https');
 const http  = require('http');
 const { URL } = require('url');
 
-// Only these upstream hosts may be proxied.
+// Only these upstream hosts may be proxied. Value = Cache-Control for that host,
+// tuned to how fast its data changes: aircraft & ISS move, so a short TTL; place
+// names effectively never change, so a long one.
 const ALLOW = {
   'api.adsb.lol':                 's-maxage=10, stale-while-revalidate=20',
+  'api.wheretheiss.at':           's-maxage=5,  stale-while-revalidate=15',
   'nominatim.openstreetmap.org':  's-maxage=86400, stale-while-revalidate=604800',
 };
 

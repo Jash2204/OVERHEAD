@@ -1,0 +1,18 @@
+# Dependencies (none are committed — proxy/serve run via npx)
+node_modules/
+package-lock.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
+
+# Local tooling
+.claude/
+.vercel/
+
+# Logs
+*.log

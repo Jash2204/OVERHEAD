@@ -14,6 +14,7 @@ OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky 
 
 - **Zero hardware, zero cost.** Comparable ceiling trackers (e.g. *Skylight*) need a Raspberry Pi + an RTL-SDR radio (~$400–1,500) to receive ADS-B. OVERHEAD needs only a browser and any projector — it pulls live aircraft from an open data API instead of radio.
 - **Live traffic *and* accurate astronomy in one view** — most projects do one or the other.
+- **Plug-and-play, yet deeply tunable.** It just works the second you open the site — share location (or don't) and look up. But almost everything is a control: every sky layer toggles independently, plus light-pollution (Bortle) level, field of view, render resolution, time-lapse speed/quality up to 4K, four-corner projector calibration, and a teleport-anywhere location/sky-clock engine (**ZENYTH**). Zero-config for a casual glance; a deep control surface when you want one.
 - **Privacy-first and stateless** — no account, no database, nothing about you stored anywhere.
 - **One file.** No build step, no framework, no install — it runs from a static host or even `file://`.
 
@@ -42,7 +43,7 @@ OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky 
 
 ## Architecture at a glance
 
-Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side astronomy** (VSOP87 + sidereal time) → live data via a **hardened serverless proxy** on Vercel (aircraft + geocoding) → a **two-window** design (controls in one, clean projection in the other) synced locally → deployed as **static files on Vercel's edge**, auto-published from GitHub.
+Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side astronomy** (VSOP87 + sidereal time) → live data (aircraft, ISS, geocoding) via a **hardened serverless proxy** on Vercel → a **two-window** design (controls in one, clean projection in the other) synced locally → deployed as **static files on Vercel's edge**, auto-published from GitHub.
 
 ---
 
@@ -74,7 +75,7 @@ Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side a
 
 - **Astronomy is computed client-side (VSOP87 + sidereal time).** Calculating planet, Sun and twilight positions in the browser keeps the app private and serverless and avoids paying for an ephemeris API.
 - **Live data comes from open APIs (adsb.lol for aircraft, Nominatim for geocoding — both ODbL).** Free, open data with no hardware is the core differentiator from radio-based trackers; the attribution obligations are met in `NOTICE.md`.
-- **The proxy is hardened, not a passthrough.** It's locked to an allowlist of only those two data hosts (so it can't be abused as an open relay), edge-cached to respect Nominatim's ~1 request/second policy and to scale cheaply, and sends a proper identifying `User-Agent` as that policy requires.
+- **The proxy is hardened, not a passthrough.** *Every* live request — aircraft, ISS and geocoding — flows through it, and it's locked to an allowlist of just those three data hosts (so it can't be abused as an open relay). It's edge-cached per host (a short TTL for moving aircraft and the ISS, a long one for place names) to respect Nominatim's ~1 request/second policy and to scale cheaply, sends a proper identifying `User-Agent` as that policy requires, and keeps each visitor's IP off the upstream providers. Each call is also time-boxed with a direct-fetch fallback, so a stalled network can't freeze startup and the app still runs from `file://` with no proxy at all.
 
 ### Cost, deployment & licensing
 
