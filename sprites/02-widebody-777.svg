@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- OVERHEAD sprite v2 · WIDEBODY / HEAVY (Boeing 777-300ER) · underside, nose up -->
+  <!-- Real: 73.86 m long · 64.80 m span · 2x GE90-115B. -->
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b7686"/><stop offset="0.32" stop-color="#c9d2dc"/>
+      <stop offset="0.5" stop-color="#eef3f8"/><stop offset="0.68" stop-color="#c9d2dc"/><stop offset="1" stop-color="#6b7686"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a8492"/><stop offset="0.5" stop-color="#dfe6ee"/><stop offset="1" stop-color="#7a8492"/>
+    </linearGradient>
+    <radialGradient id="fan"><stop offset="0" stop-color="#3a4252"/><stop offset="0.55" stop-color="#aab4c2"/><stop offset="1" stop-color="#7c8694"/></radialGradient>
+    <radialGradient id="nR"><stop offset="0" stop-color="#ff8a96"/><stop offset="1" stop-color="#ff2740" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nG"><stop offset="0" stop-color="#9bffc9"/><stop offset="1" stop-color="#27ff7a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nW"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nB"><stop offset="0" stop-color="#ff5a5a"/><stop offset="1" stop-color="#ff2020" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g stroke="#3a4350" stroke-width="0.8" stroke-linejoin="round">
+    <!-- horizontal stabilizers -->
+    <polygon points="116,200 80,216 86,221 116,210" fill="url(#wing)"/>
+    <polygon points="124,200 160,216 154,221 124,210" fill="url(#wing)"/>
+    <!-- wings with swept leading edge -->
+    <path d="M115,104 L20,151 L23,159 L115,132 Z" fill="url(#wing)"/>
+    <path d="M125,104 L220,151 L217,159 L125,132 Z" fill="url(#wing)"/>
+    <!-- flap-track fairings (signature 777 trailing-edge bumps) -->
+    <g fill="#b6c0cc" stroke-width="0.5">
+      <ellipse cx="64" cy="150" rx="2.4" ry="6"/><ellipse cx="82" cy="146" rx="2.4" ry="6"/><ellipse cx="100" cy="142" rx="2.4" ry="6"/>
+      <ellipse cx="176" cy="150" rx="2.4" ry="6"/><ellipse cx="158" cy="146" rx="2.4" ry="6"/><ellipse cx="140" cy="142" rx="2.4" ry="6"/>
+    </g>
+    <!-- engine nacelles + fan faces -->
+    <ellipse cx="74" cy="134" rx="9.5" ry="17" fill="#9aa4b2"/>
+    <ellipse cx="74" cy="132" rx="6.5" ry="11" fill="url(#fan)"/>
+    <ellipse cx="166" cy="134" rx="9.5" ry="17" fill="#9aa4b2"/>
+    <ellipse cx="166" cy="132" rx="6.5" ry="11" fill="url(#fan)"/>
+    <!-- fuselage -->
+    <path d="M120,14 C129,30 132,52 132,86 L132,200 C132,216 127,224 120,226 C113,224 108,216 108,200 L108,86 C108,52 111,30 120,14 Z" fill="url(#hull)"/>
+    <!-- vertical fin (edge-on from below) -->
+    <path d="M120,198 L115,222 L120,225 L125,222 Z" fill="#9fa9b6"/>
+  </g>
+  <!-- panel + door detail -->
+  <g stroke="#67717e" stroke-width="0.6" opacity="0.5" fill="none">
+    <line x1="120" y1="40" x2="120" y2="206"/>
+    <line x1="108" y1="116" x2="132" y2="116"/><line x1="108" y1="150" x2="132" y2="150"/>
+    <rect x="112" y="120" width="6" height="10" rx="1"/><rect x="122" y="120" width="6" height="10" rx="1"/>
+  </g>
+  <!-- cockpit windows -->
+  <path d="M114,30 Q120,26 126,30" stroke="#90a6bd" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- nav lights, belly beacon, tail -->
+  <circle cx="21" cy="155" r="10" fill="url(#nR)"/><circle cx="21" cy="155" r="2.2" fill="#ff3850"/>
+  <circle cx="219" cy="155" r="10" fill="url(#nG)"/><circle cx="219" cy="155" r="2.2" fill="#3dff88"/>
+  <circle cx="120" cy="120" r="7" fill="url(#nB)"/><circle cx="120" cy="120" r="1.4" fill="#ff5a5a"/>
+  <circle cx="120" cy="225" r="9" fill="url(#nW)"/><circle cx="120" cy="225" r="1.8" fill="#fff"/>
+</svg>

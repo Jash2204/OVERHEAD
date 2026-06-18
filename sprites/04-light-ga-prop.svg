@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- OVERHEAD sprite v2 · LIGHT / GA PROP (high-wing, Cessna-type) · underside, nose up -->
+  <!-- Real: ~8.4 m long · 10.9 m span. Frequent at low altitude near small fields. -->
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b7686"/><stop offset="0.5" stop-color="#eef3f8"/><stop offset="1" stop-color="#6b7686"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfe6ee"/><stop offset="1" stop-color="#9aa4b2"/>
+    </linearGradient>
+    <radialGradient id="disc"><stop offset="0.55" stop-color="#aab8c8" stop-opacity="0"/><stop offset="0.92" stop-color="#aab8c8" stop-opacity="0.18"/><stop offset="1" stop-color="#aab8c8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nR"><stop offset="0" stop-color="#ff8a96"/><stop offset="1" stop-color="#ff2740" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nG"><stop offset="0" stop-color="#9bffc9"/><stop offset="1" stop-color="#27ff7a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nW"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- prop disc + 2 blades -->
+  <circle cx="120" cy="54" r="32" fill="url(#disc)"/>
+  <g stroke="#c2ccd8" stroke-width="2.4" stroke-linecap="round" opacity="0.8"><line x1="120" y1="22" x2="120" y2="86"/><line x1="100" y1="60" x2="140" y2="48"/></g>
+  <g stroke="#3a4350" stroke-width="0.8" stroke-linejoin="round">
+    <!-- lift struts -->
+    <line x1="112" y1="116" x2="60" y2="100" stroke="#8a95a3" stroke-width="1.8"/>
+    <line x1="128" y1="116" x2="180" y2="100" stroke="#8a95a3" stroke-width="1.8"/>
+    <!-- straight high wing (slightly tapered tips) -->
+    <path d="M24,90 L216,90 Q220,90 218,97 L216,103 L24,103 L22,97 Q22,90 24,90 Z" fill="url(#wing)"/>
+    <!-- horizontal tailplane -->
+    <polygon points="88,174 152,174 148,184 92,184" fill="url(#wing)"/>
+    <!-- fuselage -->
+    <path d="M120,50 C127,56 129,68 129,90 L129,176 C129,188 126,194 120,196 C114,194 111,188 111,176 L111,90 C111,68 113,56 120,50 Z" fill="url(#hull)"/>
+    <!-- vertical fin edge-on -->
+    <path d="M120,174 L116,192 L120,195 L124,192 Z" fill="#9fa9b6"/>
+    <!-- fixed main gear -->
+    <circle cx="104" cy="120" r="3" fill="#6b7682"/><circle cx="136" cy="120" r="3" fill="#6b7682"/>
+  </g>
+  <!-- greenhouse cabin glazing -->
+  <ellipse cx="120" cy="86" rx="7" ry="11" fill="#9fb6cc" opacity="0.7"/>
+  <!-- nav lights at wingtips + tail -->
+  <circle cx="24" cy="96" r="8" fill="url(#nR)"/><circle cx="24" cy="96" r="2" fill="#ff3850"/>
+  <circle cx="216" cy="96" r="8" fill="url(#nG)"/><circle cx="216" cy="96" r="2" fill="#3dff88"/>
+  <circle cx="120" cy="195" r="7" fill="url(#nW)"/><circle cx="120" cy="195" r="1.5" fill="#fff"/>
+</svg>

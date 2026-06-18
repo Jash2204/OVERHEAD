@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- OVERHEAD sprite v2 · NARROWBODY TWIN-JET (generic 737/A320) · underside, nose up -->
+  <!-- Real: ~37.6 m long · 35.8 m span. The most common type overhead. -->
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b7686"/><stop offset="0.32" stop-color="#c9d2dc"/>
+      <stop offset="0.5" stop-color="#eef3f8"/><stop offset="0.68" stop-color="#c9d2dc"/><stop offset="1" stop-color="#6b7686"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a8492"/><stop offset="0.5" stop-color="#dfe6ee"/><stop offset="1" stop-color="#7a8492"/>
+    </linearGradient>
+    <radialGradient id="fan"><stop offset="0" stop-color="#3a4252"/><stop offset="0.55" stop-color="#aab4c2"/><stop offset="1" stop-color="#7c8694"/></radialGradient>
+    <radialGradient id="nR"><stop offset="0" stop-color="#ff8a96"/><stop offset="1" stop-color="#ff2740" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nG"><stop offset="0" stop-color="#9bffc9"/><stop offset="1" stop-color="#27ff7a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nW"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nB"><stop offset="0" stop-color="#ff5a5a"/><stop offset="1" stop-color="#ff2020" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g stroke="#3a4350" stroke-width="0.8" stroke-linejoin="round">
+    <!-- horizontal stabilizers -->
+    <polygon points="117,196 88,210 93,214 117,205" fill="url(#wing)"/>
+    <polygon points="123,196 152,210 147,214 123,205" fill="url(#wing)"/>
+    <!-- wings (moderate sweep) -->
+    <path d="M116,106 L32,148 L35,155 L116,130 Z" fill="url(#wing)"/>
+    <path d="M124,106 L208,148 L205,155 L124,130 Z" fill="url(#wing)"/>
+    <!-- flap-track fairings -->
+    <g fill="#b6c0cc" stroke-width="0.5">
+      <ellipse cx="70" cy="145" rx="2" ry="5"/><ellipse cx="88" cy="141" rx="2" ry="5"/>
+      <ellipse cx="170" cy="145" rx="2" ry="5"/><ellipse cx="152" cy="141" rx="2" ry="5"/>
+    </g>
+    <!-- engine nacelles + fan faces -->
+    <ellipse cx="78" cy="131" rx="7" ry="13" fill="#9aa4b2"/><ellipse cx="78" cy="130" rx="4.6" ry="8.5" fill="url(#fan)"/>
+    <ellipse cx="162" cy="131" rx="7" ry="13" fill="#9aa4b2"/><ellipse cx="162" cy="130" rx="4.6" ry="8.5" fill="url(#fan)"/>
+    <!-- fuselage -->
+    <path d="M120,22 C128,38 130,58 130,90 L130,194 C130,208 126,216 120,218 C114,216 110,208 110,194 L110,90 C110,58 112,38 120,22 Z" fill="url(#hull)"/>
+    <!-- vertical fin edge-on -->
+    <path d="M120,192 L116,214 L120,217 L124,214 Z" fill="#9fa9b6"/>
+  </g>
+  <!-- panel + gear-door detail -->
+  <g stroke="#67717e" stroke-width="0.6" opacity="0.5" fill="none">
+    <line x1="120" y1="44" x2="120" y2="198"/>
+    <line x1="110" y1="118" x2="130" y2="118"/><line x1="110" y1="146" x2="130" y2="146"/>
+    <rect x="113" y="122" width="5" height="9" rx="1"/><rect x="122" y="122" width="5" height="9" rx="1"/>
+  </g>
+  <path d="M115,36 Q120,32 125,36" stroke="#90a6bd" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- nav lights, belly beacon, tail -->
+  <circle cx="33" cy="151" r="9" fill="url(#nR)"/><circle cx="33" cy="151" r="2" fill="#ff3850"/>
+  <circle cx="207" cy="151" r="9" fill="url(#nG)"/><circle cx="207" cy="151" r="2" fill="#3dff88"/>
+  <circle cx="120" cy="116" r="6" fill="url(#nB)"/><circle cx="120" cy="116" r="1.3" fill="#ff5a5a"/>
+  <circle cx="120" cy="217" r="8" fill="url(#nW)"/><circle cx="120" cy="217" r="1.6" fill="#fff"/>
+</svg>

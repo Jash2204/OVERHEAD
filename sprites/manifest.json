@@ -1,0 +1,12 @@
+{
+  "about": "Underside aircraft sprites for OVERHEAD. Each SVG is nose-up, centred, transparent, on a 240x240 viewBox so the engine can rotate it by ground track and scale it by slant distance. Nav lights: red=port(left), green=starboard(right), white=tail, red beacon=belly.",
+  "reference": { "type": "Boeing 777-300ER", "lengthM": 73.86 },
+  "relScaleNote": "relScale = real length relative to the 777, but floored so small types stay legible on a ceiling (a true Cessna would be ~0.11). Use as a per-type size multiplier on top of the existing distance scaling.",
+  "types": [
+    { "id": "narrowbody",   "file": "01-narrowbody-twinjet.svg", "label": "Narrowbody twin-jet", "lengthM": 37.6, "spanM": 35.8, "relScale": 0.55, "matches": "A320 / 737 family; the default for airliners" },
+    { "id": "widebody",     "file": "02-widebody-777.svg",       "label": "Widebody / heavy",    "lengthM": 73.9, "spanM": 64.8, "relScale": 1.00, "matches": "777 / 787 / A330 / A350; heavies" },
+    { "id": "helicopter",   "file": "03-helicopter.svg",         "label": "Helicopter",          "lengthM": 16.6, "spanM": 15.6, "relScale": 0.34, "matches": "rotorcraft" },
+    { "id": "ga_prop",      "file": "04-light-ga-prop.svg",      "label": "Light / GA prop",     "lengthM": 8.4,  "spanM": 10.9, "relScale": 0.22, "matches": "Cessna / Piper light singles" },
+    { "id": "business_jet", "file": "05-business-jet.svg",       "label": "Business / private jet","lengthM": 20.3, "spanM": 20.4, "relScale": 0.40, "matches": "Learjet / Citation / Gulfstream" }
+  ]
+}

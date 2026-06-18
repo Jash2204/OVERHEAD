@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- OVERHEAD sprite v2 · HELICOPTER (twin-engine, police / air-ambulance) · underside, nose up -->
+  <!-- Real: ~16 m long · ~15.6 m rotor span. Rare but unmistakable. -->
+  <defs>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5f6a78"/><stop offset="0.5" stop-color="#d6dde6"/><stop offset="1" stop-color="#5f6a78"/>
+    </linearGradient>
+    <radialGradient id="disc"><stop offset="0.5" stop-color="#aab8c8" stop-opacity="0"/><stop offset="0.9" stop-color="#aab8c8" stop-opacity="0.16"/><stop offset="1" stop-color="#aab8c8" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nR"><stop offset="0" stop-color="#ff8a96"/><stop offset="1" stop-color="#ff2740" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nG"><stop offset="0" stop-color="#9bffc9"/><stop offset="1" stop-color="#27ff7a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="nW"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <!-- main rotor disc + blades -->
+  <circle cx="120" cy="98" r="94" fill="url(#disc)"/>
+  <circle cx="120" cy="98" r="94" fill="none" stroke="#9fb0c2" stroke-width="0.7" stroke-opacity="0.3"/>
+  <g stroke="#b4bfcc" stroke-width="3" stroke-linecap="round" opacity="0.8">
+    <line x1="120" y1="98" x2="120" y2="8"/><line x1="120" y1="98" x2="120" y2="188"/>
+    <line x1="120" y1="98" x2="32" y2="78"/><line x1="120" y1="98" x2="208" y2="78"/>
+  </g>
+  <g stroke="#39424f" stroke-width="0.8" stroke-linejoin="round">
+    <!-- tail boom -->
+    <path d="M114,150 L117,198 L123,198 L126,150 Z" fill="url(#hull)"/>
+    <!-- horizontal stabiliser on boom -->
+    <polygon points="106,182 134,182 132,188 108,188" fill="#aeb9c6"/>
+    <!-- tail-rotor guard + rotor -->
+    <polygon points="117,196 104,208 117,212 121,202" fill="#aeb9c6"/>
+    <ellipse cx="120" cy="205" rx="3.5" ry="9" fill="#c2ccd8"/>
+    <!-- fuselage pod (streamlined) -->
+    <path d="M120,40 C136,46 142,62 142,90 C142,126 133,150 120,154 C107,150 98,126 98,90 C98,62 104,46 120,40 Z" fill="url(#hull)"/>
+    <!-- engine deck panel -->
+    <rect x="110" y="96" width="20" height="26" rx="3" fill="#8b96a4" opacity="0.7"/>
+  </g>
+  <!-- chin cockpit glazing -->
+  <path d="M108,58 Q120,44 132,58 Q126,72 120,72 Q114,72 108,58 Z" fill="#9fb6cc" opacity="0.85"/>
+  <!-- skids -->
+  <g stroke="#7a8694" stroke-width="2.6" stroke-linecap="round"><line x1="101" y1="74" x2="101" y2="140"/><line x1="139" y1="74" x2="139" y2="140"/></g>
+  <!-- nav lights -->
+  <circle cx="98" cy="96" r="8" fill="url(#nR)"/><circle cx="98" cy="96" r="2" fill="#ff3850"/>
+  <circle cx="142" cy="96" r="8" fill="url(#nG)"/><circle cx="142" cy="96" r="2" fill="#3dff88"/>
+  <circle cx="120" cy="208" r="7" fill="url(#nW)"/><circle cx="120" cy="208" r="1.5" fill="#fff"/>
+</svg>
