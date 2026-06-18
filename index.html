@@ -1781,6 +1781,22 @@ function mmv3(m,v){return[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]
 function b2p3(x1,y1,x2,y2,x3,y3,x4,y4){var m=[x1,x2,x3,y1,y2,y3,1,1,1];var v=mmv3(adj3(m),[x4,y4,1]);return mmm3(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
 function homography(w,h,cn){var s=b2p3(0,0,w,0,w,h,0,h);var d=b2p3(cn[0][0],cn[0][1],cn[1][0],cn[1][1],cn[2][0],cn[2][1],cn[3][0],cn[3][1]);var t=mmm3(d,adj3(s));for(var i=0;i<9;i++)t[i]/=t[8];return"matrix3d("+[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]].join(",")+")";}
 
+// Re-anchor cached aircraft to the CURRENT projection. Planes dead-reckon in
+// screen space between fetches (sx/sy stepped by vx/vy each frame) and only get
+// re-projected from lat/lon at fetch time. So a change of projection (dome↔wide
+// or FOV) strands them at old-projection coordinates — they bunch into a false
+// "ring" until the next poll. Recomputing here fixes it instantly, with no extra
+// API call (so it can't trip the feed's rate limits).
+function reprojectTraffic(){
+  Object.values(planeMap).forEach(p=>{
+    const sp=geoToScreen(p.lat,p.lon,p.alt);
+    p.sx=sp.x; p.sy=sp.y;
+    const v=velFromHeading(p.vel,p.track); p.vx=v.vx; p.vy=v.vy;
+    if(p.trail) p.trail.length=0;   // old-projection trail points would streak
+  });
+  // (The ISS re-projects itself every frame from geoToScreen, so it needs no fix-up.)
+}
+
 // PROJECTION MODE — wide-field (fills rectangle) ↔ dome (hemisphere circle)
 function toggleProjMode(btn){
   projMode = (projMode==='wide') ? 'dome' : 'wide';
@@ -1791,6 +1807,7 @@ function toggleProjMode(btn){
       projMode==='wide' ? 'Fill screen · tap for dome' : 'Hemisphere · tap for wide';
   }
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  reprojectTraffic();
   syncFovCtrl();
   pushState();
 }
@@ -1800,6 +1817,7 @@ function setFov(v){
   fovDeg = +v;
   const lbl=document.getElementById('fov-val'); if(lbl) lbl.textContent=Math.round(fovDeg)+'\u00B0';
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  reprojectTraffic();
   pushState();
 }
 function syncFovCtrl(){
@@ -1862,6 +1880,7 @@ function collectState() {
 // Apply received state (output side)
 function applyState(s) {
   if(!s) return;
+  const prevProj=projMode, prevFov=fovDeg;   // detect a projection change from the sync
   if(typeof s.userLat==='number') userLat = s.userLat;
   if(typeof s.userLon==='number') userLon = s.userLon;
   if(s.locationName) locationName = s.locationName;
@@ -1875,6 +1894,9 @@ function applyState(s) {
   if(typeof s.skyTimeOffsetMs==='number') skyTimeOffsetMs = s.skyTimeOffsetMs;
   // Recompute positions for new location/orientation
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  // Re-anchor aircraft only if this sync actually changed the projection (else we'd
+  // needlessly wipe plane trails on every unrelated state push).
+  if(projMode!==prevProj || fovDeg!==prevFov) reprojectTraffic();
 }
 
 // Push current state to the output window (control side). Multi-channel for robustness.
