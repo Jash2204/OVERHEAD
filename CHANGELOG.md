@@ -40,6 +40,13 @@ the app stays private and cached on the live site yet still runs from `file://` 
 plain static host. `api.wheretheiss.at` was added to the proxy allowlist (short cache TTL,
 matching the aircraft feed) to make this possible.
 
+### Aircraft feed: no third-party relay
+Removed the `allorigins.win` public CORS-relay fallbacks from the aircraft feed. Because the
+ADS-B request URL embeds the user's coordinates, relaying it through an undisclosed third
+party contradicted the privacy policy's "only three allowlisted hosts" guarantee. The feed's
+only fallbacks are now those same allowlisted hosts (hardened proxy → local-dev proxy →
+direct adsb.lol), so the user's location never leaves the three disclosed services.
+
 ### Repository tidy
 Removed the internal `patch/` build scripts from the published tree — they were
 development-only artifacts and aren't needed to run, host, or modify OVERHEAD.

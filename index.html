@@ -1616,9 +1616,8 @@ let planeWorker=null, planeReqId=0;
         try{
           var r=await fetch(s.url,{signal:AbortSignal.timeout(15000)});
           if(!r.ok) continue;
-          var js=await r.json(), ac;
-          if(s.kind==='allorigins-get'){ try{var p=JSON.parse(js.contents); ac=p.ac||p.aircraft||[];}catch(_){ac=[];} }
-          else { ac=js.ac||js.aircraft||[]; }
+          var js=await r.json();
+          var ac=js.ac||js.aircraft||[];
           if(ac&&ac.length>0){ out=ac; break; }
         }catch(_){}
       }
@@ -1636,13 +1635,14 @@ function buildPlaneSources(){
   const base=`https://api.adsb.lol/v2/lat/${lat4}/lon/${lon4}/dist/${nm}`;
   const enc=encodeURIComponent(base);
   // Worker fetches need absolute URLs; the proxy is same-origin.
+  // Privacy: these are the ONLY hosts the aircraft feed may contact — the request
+  // carries the user's coordinates, so it never falls back to a public CORS relay
+  // (which would leak that location to an undisclosed third party).
   const origin=(location.protocol==='file:')?'':location.origin;
   return [
-    {url:`${origin}/api/proxy?url=${enc}`, kind:'direct'},      // 1. Vercel proxy (primary live)
-    {url:`http://localhost:3001/?url=${enc}`, kind:'direct'},   // 2. Local proxy
-    {url:base, kind:'direct'},                                  // 3. Direct (if adsb.lol CORS)
-    {url:`https://api.allorigins.win/raw?url=${enc}`, kind:'direct'},
-    {url:`https://api.allorigins.win/get?url=${enc}`, kind:'allorigins-get'},
+    {url:`${origin}/api/proxy?url=${enc}`},      // 1. Vercel proxy (primary live, edge-cached)
+    {url:`http://localhost:3001/?url=${enc}`},   // 2. local dev proxy
+    {url:base},                                  // 3. direct (adsb.lol sends CORS)
   ];
 }
 function fetchPlanesViaWorker(sources){
@@ -1661,9 +1661,7 @@ async function fetchPlanesInline(sources){
       const r=await fetch(s.url,{signal:AbortSignal.timeout(15000)});
       if(!r.ok) continue;
       const js=await r.json();
-      let ac;
-      if(s.kind==='allorigins-get'){ try{const i=JSON.parse(js.contents); ac=i.ac||i.aircraft||[];}catch{ac=[];} }
-      else { ac=js.ac||js.aircraft||[]; }
+      const ac=js.ac||js.aircraft||[];
       if(ac&&ac.length>0) return ac;
     }catch{}
   }
