@@ -141,21 +141,6 @@ body.projector .btn-icon{font-size:18px}
 .irow b{color:#fff;text-align:right}
 
 /* ── OVERHEAD ALERT ── */
-#overhead-alert{position:fixed;top:50%;left:50%;
-  transform:translate(-50%,-50%);z-index:30;
-  text-align:center;pointer-events:none;display:none}
-#overhead-alert.show{display:block}
-.alert-ring{width:120px;height:120px;border-radius:50%;
-  border:2px solid var(--amber);margin:0 auto 12px;
-  animation:alertPulse 1s ease-in-out infinite}
-@keyframes alertPulse{
-  0%,100%{transform:scale(1);opacity:1;box-shadow:0 0 0 0 rgba(255,170,0,0.4)}
-  50%{transform:scale(1.08);opacity:0.8;box-shadow:0 0 0 20px rgba(255,170,0,0)}}
-.alert-cs{font-family:'Rajdhani',sans-serif;font-weight:700;
-  font-size:28px;letter-spacing:0.15em;color:var(--amber)}
-.alert-sub{font-size:9px;letter-spacing:0.25em;color:rgba(255,170,0,0.6);margin-top:4px}
-body.projector .alert-cs{font-size:44px}
-
 /* ── TOOLTIP ── */
 #tooltip{position:fixed;z-index:15;background:rgba(1,10,22,0.9);
   border:1px solid rgba(0,212,255,0.2);padding:5px 9px;
@@ -210,7 +195,6 @@ body.output-only #controls,
 body.output-only #fetch-bar,
 body.output-only #info,
 body.output-only #tooltip,
-body.output-only #overhead-alert,
 body.output-only #vignette,
 body.output-only #oh-countdown,
 body.output-only #oh-toasts,
@@ -714,12 +698,6 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
   </div>
 </div>
 
-<!-- OVERHEAD ALERT -->
-<div id="overhead-alert">
-  <div class="alert-ring"></div>
-  <div class="alert-cs" id="alert-cs">---</div>
-  <div class="alert-sub">DIRECTLY OVERHEAD</div>
-</div>
 
 <!-- INFO PANEL -->
 <div id="info">
@@ -956,7 +934,6 @@ let frame = 0;
 let lastFrameTime = performance.now();
 let lastFetchTime = 0;
 let hovered = null, selected = null;
-let overheadAlert = null, overheadAlertTimer = null;
 const KM_PER_DEG = 111.0;
 
 window.addEventListener('resize', () => {
@@ -1750,26 +1727,6 @@ async function fetchPlanes() {
   lastFetchTime=performance.now();
 }
 
-// ═══════════════════════════════════════════════════════
-// OVERHEAD DETECTION
-// ═══════════════════════════════════════════════════════
-function checkOverhead() {
-  Object.values(planeMap).forEach(p=>{
-    const distKm=p.distM/1000||999;
-    if(distKm<CFG.OVERHEAD_KM&&p.alt>1000) {
-      if(overheadAlert!==p.callsign) {
-        overheadAlert=p.callsign;
-        document.getElementById('alert-cs').textContent=p.callsign;
-        document.getElementById('overhead-alert').classList.add('show');
-        clearTimeout(overheadAlertTimer);
-        overheadAlertTimer=setTimeout(()=>{
-          document.getElementById('overhead-alert').classList.remove('show');
-          overheadAlert=null;
-        },8000);
-      }
-    }
-  });
-}
 
 // ═══════════════════════════════════════════════════════
 // DEVICE ORIENTATION
@@ -3343,7 +3300,6 @@ async function init() {
   setInterval(fetchPlanes,CFG.FETCH_INTERVAL);
   setInterval(fetchISS,CFG.ISS_INTERVAL);
   setInterval(()=>{buildStars();buildPlanets();buildMeteorShowers();buildMilkyWay();buildMoon();buildSun();},60000);
-  setInterval(checkOverhead,10000);
   // Sprite-preview aid: open with #demo to drop in sample aircraft of every type
   // (no live feed needed). Gated on the hash, so production is never affected.
   if(location.hash.indexOf('demo')>=0) setTimeout(ohDemoTraffic, 1200);
