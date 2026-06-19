@@ -1036,13 +1036,6 @@ function geoToScreen(lat, lon, altM=10000) {
   return {...altAzToScreen(altDeg,az), az, distM};
 }
 
-function velFromHeading(speedMs, trackDeg) {
-  const trackRad=trackDeg*Math.PI/180;
-  const approxDist=300000;
-  const angSpd=speedMs/approxDist/1000;
-  const dr=DR();
-  return { vx:Math.sin(trackRad)*angSpd*dr, vy:-Math.cos(trackRad)*angSpd*dr };
-}
 
 // Project a great-circle path from a start lat/lon along a bearing.
 // Returns array of screen points (only those above horizon).
@@ -1738,18 +1731,18 @@ async function fetchPlanes() {
     seen.add(cs);
     if(planeMap[cs]){
       const old=planeMap[cs];
-      const np=geoToScreen(lat,lon,altM), op=geoToScreen(old.lat,old.lon,old.alt);
-      const dt=now-old.lastUpdate;
-      if(dt>500){old.vx=(np.x-op.x)/dt;old.vy=(np.y-op.y)/dt;}
-      old.lat=lat;old.lon=lon;old.alt=altM;old.vel=velMs;old.track=track;
-      old.sx=np.x;old.sy=np.y;old.lastUpdate=now;old.acType=a.t||'';
+      // Don't snap to the new position — the plane has been dead-reckoning in world
+      // space, so record the small lat/lon error and bleed it in over ~0.7s in
+      // simulate(). That keeps live updates perfectly smooth (no teleport).
+      old.errLat=lat-old.lat; old.errLon=lon-old.lon;
+      old.alt=altM; old.vel=velMs; old.track=track;
+      old.lastUpdate=now; old.acType=a.t||'';
     } else {
       const sp=geoToScreen(lat,lon,altM);
-      const {vx,vy}=velFromHeading(velMs,track);
       planeMap[cs]={callsign:cs,lat,lon,alt:altM,vel:velMs,track,
         country:a.r||'?',acType:a.t||'',
         origin:a.orig||a.origin||'',dest:a.dest||a.destination||'',
-        sx:sp.x,sy:sp.y,vx,vy,trail:[],lastUpdate:now,fadeIn:0};
+        sx:sp.x,sy:sp.y,errLat:0,errLon:0,trail:[],lastUpdate:now,fadeIn:0};
     }
   });
   Object.keys(planeMap).forEach(cs=>{if(!seen.has(cs))delete planeMap[cs];});
@@ -1819,20 +1812,12 @@ function mmv3(m,v){return[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]
 function b2p3(x1,y1,x2,y2,x3,y3,x4,y4){var m=[x1,x2,x3,y1,y2,y3,1,1,1];var v=mmv3(adj3(m),[x4,y4,1]);return mmm3(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
 function homography(w,h,cn){var s=b2p3(0,0,w,0,w,h,0,h);var d=b2p3(cn[0][0],cn[0][1],cn[1][0],cn[1][1],cn[2][0],cn[2][1],cn[3][0],cn[3][1]);var t=mmm3(d,adj3(s));for(var i=0;i<9;i++)t[i]/=t[8];return"matrix3d("+[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]].join(",")+")";}
 
-// Re-anchor cached aircraft to the CURRENT projection. Planes dead-reckon in
-// screen space between fetches (sx/sy stepped by vx/vy each frame) and only get
-// re-projected from lat/lon at fetch time. So a change of projection (dome↔wide
-// or FOV) strands them at old-projection coordinates — they bunch into a false
-// "ring" until the next poll. Recomputing here fixes it instantly, with no extra
-// API call (so it can't trip the feed's rate limits).
+// Aircraft are now re-projected from lat/lon every frame in simulate(), so a change
+// of projection (dome↔ceiling-cutout or FOV) is already seamless. We only clear the
+// trails, whose past points were sampled under the previous projection and would
+// otherwise streak across the screen.
 function reprojectTraffic(){
-  Object.values(planeMap).forEach(p=>{
-    const sp=geoToScreen(p.lat,p.lon,p.alt);
-    p.sx=sp.x; p.sy=sp.y;
-    const v=velFromHeading(p.vel,p.track); p.vx=v.vx; p.vy=v.vy;
-    if(p.trail) p.trail.length=0;   // old-projection trail points would streak
-  });
-  // (The ISS re-projects itself every frame from geoToScreen, so it needs no fix-up.)
+  Object.values(planeMap).forEach(p=>{ if(p.trail) p.trail.length=0; });
 }
 
 // PROJECTION MODE — wide-field (fills rectangle) ↔ dome (hemisphere circle)
@@ -2197,14 +2182,28 @@ function closeInfo() { document.getElementById('info').classList.remove('show');
 function simulate(now) {
   const dt=Math.min(now-lastFrameTime,100);
   lastFrameTime=now;
-  // Planes
+  // Planes — dead-reckon in WORLD space (great-circle), then project every frame.
+  // This is why aircraft no longer freeze or teleport: screen motion is always
+  // derived from a true, continuously-advancing position, so it stays correct in
+  // any projection or FOV and the next fetch lands as a tiny smooth correction.
   Object.values(planeMap).forEach(p=>{
-    p.sx+=p.vx*dt; p.sy+=p.vy*dt;
+    const spd=p.vel||0;
+    if(spd>0){
+      const tr=p.track*Math.PI/180;
+      p.lat += (spd*Math.cos(tr)*dt/1000)/111320;
+      p.lon += (spd*Math.sin(tr)*dt/1000)/(111320*Math.max(0.02,Math.cos(p.lat*Math.PI/180)));
+    }
+    if(p.errLat||p.errLon){                       // bleed in the last fetch correction
+      const k=Math.min(1, dt/700);
+      p.lat+=p.errLat*k; p.lon+=p.errLon*k;
+      p.errLat-=p.errLat*k; p.errLon-=p.errLon*k;
+      if(Math.abs(p.errLat)<1e-7&&Math.abs(p.errLon)<1e-7){p.errLat=0;p.errLon=0;}
+    }
+    const sp=geoToScreen(p.lat,p.lon,p.alt);
+    p.sx=sp.x; p.sy=sp.y; p.distM=sp.distM; p.altDeg=sp.altDeg;
     if(p.fadeIn<1) p.fadeIn=Math.min(1,p.fadeIn+dt/1800);
     if(SHOW.trails){p.trail.push({x:p.sx,y:p.sy});if(p.trail.length>CFG.TRAIL_LEN)p.trail.shift();}
     else p.trail=[];
-    // Update distM for overhead detection from simulated position
-    // Approximate: keep last known distM from geoToScreen
   });
   // ISS
   if(iss){
@@ -2713,7 +2712,15 @@ function draw(now) {
           }
         }
       }
-      ctx.save(); ctx.translate(p.sx,p.sy); ctx.rotate(p.track*Math.PI/180);
+      // Nose = the plane's TRUE on-screen direction of travel. Raw geographic track
+      // is wrong once the projection/orientation rotates the sky, so we project a
+      // point a few km ahead along the track and rotate to that screen vector. The
+      // sprite/icon is drawn nose-up (−y), hence the +90°. Falls back to track if the
+      // ahead-vector is too small to read (e.g. a stationary aircraft near the zenith).
+      const _ah=projectGreatCircle(p.lat,p.lon,p.track,4,1,p.alt)[1];
+      const _dx=_ah.x-p.sx, _dy=_ah.y-p.sy;
+      const _hdg=(_dx*_dx+_dy*_dy>0.04)?Math.atan2(_dy,_dx)+Math.PI/2:p.track*Math.PI/180;
+      ctx.save(); ctx.translate(p.sx,p.sy); ctx.rotate(_hdg);
       ctx.globalAlpha=a;
       if(isHov||isSel){ctx.shadowColor='#ffaa00';ctx.shadowBlur=16;}
       // ── AIRCRAFT SPRITE ── detailed underside, already rotated to ground track by the
