@@ -416,6 +416,21 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
   font-family:'Share Tech Mono',monospace;font-size:9px;padding:4px 8px;width:130px;
   outline:none;border-radius:2px;text-align:right;-moz-appearance:textfield}
 .zen-in:focus{border-color:var(--accent);box-shadow:0 0 0 1px rgba(0,212,255,0.3)}
+/* place search */
+.zen-search-field{flex-direction:column;align-items:stretch;gap:6px}
+.zen-search-in{width:100%;text-align:left;font-size:11px;padding:8px 10px}
+.zen-results{display:none;margin-top:5px;max-height:172px;overflow-y:auto;
+  border:1px solid rgba(0,212,255,0.18);border-radius:5px;background:rgba(1,10,22,0.97)}
+.zen-results.show{display:block}
+.zen-res{padding:8px 11px;font-size:11px;color:#cdd6e4;cursor:pointer;line-height:1.35;
+  border-bottom:1px solid rgba(255,255,255,0.05)}
+.zen-res:last-child{border-bottom:none}
+.zen-res:hover{background:rgba(0,212,255,0.12);color:#fff}
+.zen-res-msg{padding:9px 11px;font-size:10px;color:rgba(255,255,255,0.4)}
+.zen-lastresort{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
+.zen-lr-label{font-size:9px;letter-spacing:0.06em;color:rgba(255,255,255,0.4);margin-bottom:8px;line-height:1.4}
+.zen-coords{display:flex;gap:8px}
+.zen-coords .zen-in{flex:1;width:auto}
 .zen-btn{width:100%;margin-top:12px;padding:9px;background:transparent;
   border:1px solid var(--accent);color:var(--accent);
   font-family:'Share Tech Mono',monospace;font-size:9.5px;letter-spacing:0.16em;
@@ -614,12 +629,7 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-ambient" style="--btn-col:#9db8ff" onclick="toggleAmbient(this)">
       <span class="btn-icon">✦</span>
-      <span class="btn-label">AMBIENT MODE<span class="btn-sub">Photoreal full-bleed sky</span></span>
-    </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn" id="b-orient" style="--btn-col:var(--accent)" onclick="toggleOrientation()">
-      <span class="btn-icon">⊕</span>
-      <span class="btn-label">DEVICE ORIENT<span class="btn-sub">Rotate with phone</span></span>
+      <span class="btn-label">AMBIENT MODE<span class="btn-sub">Photoreal dense star field</span></span>
     </button>
   </div>
 </div>
@@ -783,27 +793,28 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
 <!-- v8 ZENYTH — location panel -->
 <div id="zen-panel">
   <div class="rec-hd">ZENYTH · LOCATION <span onclick="zenClose()">✕</span></div>
-  <div class="rec-intro">Set what's above your head — no GPS required. Pick a city or a
-    world-class dark-sky site to teleport the night sky there, or type exact coordinates for
-    your own spot (kept live, in real time). Nothing is stored.</div>
-  <div class="rec-field">
-    <label>MAJOR CITY</label>
-    <select id="zen-city" onchange="zenApplyCity()"><option value="">— choose —</option></select>
+  <div class="rec-intro">Set what's above your head — no GPS required. Search for any city, town
+    or address to teleport the night sky there, pick a world-class dark-sky site, or use GPS.
+    Nothing is stored.</div>
+  <div class="rec-field zen-search-field">
+    <label>SEARCH ANY PLACE</label>
+    <input id="zen-search" class="zen-in zen-search-in" type="text" autocomplete="off" spellcheck="false"
+      placeholder="City, town, postcode or address…" oninput="zenSearchInput()">
+    <div id="zen-results" class="zen-results"></div>
   </div>
   <div class="rec-field">
     <label>DARK-SKY SITE</label>
     <select id="zen-dark" onchange="zenApplyDark()"><option value="">— choose —</option></select>
   </div>
-  <div class="rec-field">
-    <label>LATITUDE</label>
-    <input id="zen-lat" class="zen-in" type="number" step="0.0001" min="-90" max="90" placeholder="−90 to 90">
-  </div>
-  <div class="rec-field">
-    <label>LONGITUDE</label>
-    <input id="zen-lon" class="zen-in" type="number" step="0.0001" min="-180" max="180" placeholder="−180 to 180">
-  </div>
-  <button class="zen-btn" onclick="zenApplyManual()">SET COORDINATES · LIVE</button>
   <button class="zen-btn zen-gps" onclick="zenUseGPS()">USE MY GPS</button>
+  <div class="zen-lastresort">
+    <div class="zen-lr-label">Can't find your place above? Enter exact coordinates — last resort.</div>
+    <div class="zen-coords">
+      <input id="zen-lat" class="zen-in" type="number" step="0.0001" min="-90" max="90" placeholder="Lat −90…90">
+      <input id="zen-lon" class="zen-in" type="number" step="0.0001" min="-180" max="180" placeholder="Lon −180…180">
+    </div>
+    <button class="zen-btn" onclick="zenApplyManual()">SET COORDINATES · LIVE</button>
+  </div>
   <div class="rec-readout" id="zen-read">—</div>
   <div class="rec-note">Teleporting to a city or dark-sky site shows it at local midnight for a
     true night sky. Your own coordinates stay live. No location data is ever stored.</div>
@@ -947,7 +958,7 @@ setInterval(function(){
   if(sub) sub.textContent = cv.width + '×' + cv.height + ' · ' + __fps + ' fps';
 }, 1000);
 
-let userLat = 52.4862, userLon = -1.8904, locationName = 'Birmingham, UK';
+let userLat = 51.5074, userLon = -0.1278, locationName = 'London, UK';
 let skyTimeOffsetMs = 0; // ZENYTH sky-clock (ms). 0 = live. Teleport presets set this to the
                          // destination's local solar midnight; own coords & GPS stay live.
                          // Single seam for a future time-of-day / daylight model.
@@ -967,8 +978,7 @@ let fovDeg = 100;        // wide-field vertical FOV — a natural "stand and loo
 let moonObj = null;
 let mwStars = []; // extra star sprinkle along the Milky Way band
 let projectorMode = false;
-let orientationActive = false;
-let orientationHeading = 0; // degrees, compass heading of top of screen
+let orientationHeading = 0; // degrees; kept at 0 (the device-orient feature was removed)
 
 let planeMap = {};
 let planeRetries = 0;
@@ -1816,38 +1826,6 @@ function toggleAcAlert(btn){
   pushState();
 }
 
-// ═══════════════════════════════════════════════════════
-// DEVICE ORIENTATION
-// ═══════════════════════════════════════════════════════
-function toggleOrientation() {
-  const btn=document.getElementById('b-orient');
-  if(!orientationActive) {
-    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function') {
-      DeviceOrientationEvent.requestPermission().then(r=>{
-        if(r==='granted'){startOrientation();btn.classList.add('on');}
-      });
-    } else {
-      startOrientation(); btn.classList.add('on');
-    }
-  } else {
-    window.removeEventListener('deviceorientationabsolute',onOrient);
-    window.removeEventListener('deviceorientation',onOrient);
-    orientationActive=false; orientationHeading=0; btn.classList.remove('on');
-  }
-}
-function startOrientation() {
-  orientationActive=true;
-  window.addEventListener('deviceorientationabsolute',onOrient,true);
-  window.addEventListener('deviceorientation',onOrient,true);
-}
-function onOrient(e) {
-  if(e.webkitCompassHeading!=null) {
-    orientationHeading=e.webkitCompassHeading; // iOS
-  } else if(e.absolute&&e.alpha!=null) {
-    orientationHeading=(360-e.alpha)%360; // Android absolute
-  }
-  pushState(); // keep output in sync with compass
-}
 
 // ── FACING COMPASS (mobile) ── A small "which way am I facing" indicator. It has
 // its OWN orientation listener so it never rotates the sky (that stays the opt-in
@@ -1948,9 +1926,9 @@ function cycleBortle(btn){
 // AMBIENT MODE — photoreal full-bleed sky
 function toggleAmbient(btn){
   SHOW.ambient = !SHOW.ambient;
-  // In dome mode, ambient scales the circle to circumscribe the screen (zenith-crop).
-  // In wide mode the rectangle is already filled, so leave domeScale at 1.
-  domeScale = (SHOW.ambient && projMode==='dome') ? (Math.hypot(W,H)/2)/(Math.min(W,H)*0.455) : 1;
+  // Ambient keeps the current view (it no longer full-bleeds the dome) — it just
+  // makes the star field denser/photoreal. domeScale stays 1 so dome view stays dome.
+  domeScale = 1;
   if(btn) btn.classList.toggle('on');
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
   pushState();
@@ -3458,18 +3436,10 @@ function ohDemoTraffic(){
 // local solar midnight so the sky is always night; the user's own
 // coordinates stay live. The engine itself is untouched.
 // ════════════════════════════════════════════════════════════════════
-const ZEN_CITIES=[
-  ['London, UK',51.5074,-0.1278],['New York, USA',40.7128,-74.0060],
-  ['Tokyo, Japan',35.6762,139.6503],['Sydney, Australia',-33.8688,151.2093],
-  ['Paris, France',48.8566,2.3522],['Los Angeles, USA',34.0522,-118.2437],
-  ['Dubai, UAE',25.2048,55.2708],['Singapore',1.3521,103.8198],
-  ['Hong Kong',22.3193,114.1694],['Moscow, Russia',55.7558,37.6173],
-  ['Cairo, Egypt',30.0444,31.2357],['Rio de Janeiro, Brazil',-22.9068,-43.1729],
-  ['Mumbai, India',19.0760,72.8777],['Cape Town, South Africa',-33.9249,18.4241],
-  ['Reykjav\u00edk, Iceland',64.1466,-21.9426],['Toronto, Canada',43.6532,-79.3832],
-  ['Beijing, China',39.9042,116.4074],['Mexico City, Mexico',19.4326,-99.1332],
-  ['Berlin, Germany',52.5200,13.4050],['Istanbul, T\u00fcrkiye',41.0082,28.9784]
-];
+// Major cities are now covered by the free-text place search (forwardGeocode),
+// so the old hard-coded ZEN_CITIES list was removed. Dark-sky sites stay as a
+// curated quick-pick because they're hand-chosen for sky quality, not searchable
+// by a name everyone knows.
 const ZEN_DARK=[
   ['Mauna Kea, Hawai\u02bbi',19.8207,-155.4681],
   ['Atacama / Elqui Valley, Chile',-30.0421,-70.6957],
@@ -3538,16 +3508,53 @@ function applyLocation(lat,lon,name,opts){
   }
 }
 
-function zenApplyCity(){
-  const sEl=document.getElementById('zen-city'); if(!sEl||sEl.value==='') return;
-  const c=ZEN_CITIES[+sEl.value]; if(!c) return;
-  const d=document.getElementById('zen-dark'); if(d) d.value='';
-  applyLocation(c[1],c[2],c[0],{night:true});
+// ── Place search (forward geocoding) ── Debounced: fires when you pause typing
+// (not per keystroke) and goes through OVERHEAD's cached proxy, to respect
+// Nominatim's usage policy. Teleport to ANY place, not just presets; exact
+// coordinates remain the last-resort fallback in the panel.
+async function forwardGeocode(q){
+  return fetchAllowlistedJSON('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&q='+encodeURIComponent(q), 8000);
+}
+let zenSearchTimer=null, zenSearchSeq=0;
+function zenSearchInput(){
+  const inp=document.getElementById('zen-search'), box=document.getElementById('zen-results');
+  if(!inp||!box) return;
+  const q=(inp.value||'').trim();
+  clearTimeout(zenSearchTimer);
+  if(q.length<3){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.classList.add('show'); box.innerHTML='<div class="zen-res-msg">Searching…</div>';
+  zenSearchTimer=setTimeout(async()=>{
+    const seq=++zenSearchSeq;
+    const res=await forwardGeocode(q);
+    if(seq!==zenSearchSeq) return;                    // a newer keystroke superseded this one
+    if(!Array.isArray(res)||!res.length){
+      box.innerHTML='<div class="zen-res-msg">No match — try a broader name, or enter coordinates below.</div>'; return;
+    }
+    box.innerHTML='';
+    res.forEach(r=>{
+      const d=document.createElement('div'); d.className='zen-res'; d.textContent=r.display_name;
+      d.addEventListener('click',()=>zenPickResult(parseFloat(r.lat),parseFloat(r.lon),zenShortName(r)));
+      box.appendChild(d);
+    });
+  }, 600);
+}
+function zenShortName(r){
+  const a=r.address||{};
+  const place=a.city||a.town||a.village||a.hamlet||a.suburb||a.county||a.state||r.name;
+  const country=a.country;
+  if(place&&country&&country!==place) return place+', '+country;
+  return place||(r.display_name||'').split(',').slice(0,2).join(', ');
+}
+function zenPickResult(lat,lon,name){
+  const box=document.getElementById('zen-results'); if(box){ box.classList.remove('show'); box.innerHTML=''; }
+  const inp=document.getElementById('zen-search'); if(inp) inp.value=name;
+  const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
+  if(isFinite(lat)&&isFinite(lon)) applyLocation(lat,lon,name,{night:true});
 }
 function zenApplyDark(){
   const sEl=document.getElementById('zen-dark'); if(!sEl||sEl.value==='') return;
   const c=ZEN_DARK[+sEl.value]; if(!c) return;
-  const cy=document.getElementById('zen-city'); if(cy) cy.value='';
+  const s=document.getElementById('zen-search'); if(s) s.value='';
   applyLocation(c[1],c[2],c[0],{night:true,remote:true,authentic:true});
 }
 function zenApplyManual(){
@@ -3557,16 +3564,16 @@ function zenApplyManual(){
     ohToast('CHECK COORDINATES','Latitude must be between −90 and 90, longitude between −180 and 180.','#ff4466');
     return;
   }
-  const cy=document.getElementById('zen-city'), dk=document.getElementById('zen-dark');
-  if(cy) cy.value=''; if(dk) dk.value='';
+  const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
+  const s=document.getElementById('zen-search'); if(s) s.value='';
   applyLocation(la,lo,'Custom location',{night:false,geocode:true});
 }
 function zenUseGPS(){
   if(!navigator.geolocation){ ohToast('NO GPS','This device can\'t share a location — type coordinates instead.','#ff4466'); return; }
   ohToast('LOCATING…','Asking your device for its position.','#7fd4ff');
   navigator.geolocation.getCurrentPosition(function(p){
-    const cy=document.getElementById('zen-city'), dk=document.getElementById('zen-dark');
-    if(cy) cy.value=''; if(dk) dk.value='';
+    const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
+    const s=document.getElementById('zen-search'); if(s) s.value='';
     const la=document.getElementById('zen-lat'), lo=document.getElementById('zen-lon');
     if(la) la.value=p.coords.latitude.toFixed(4); if(lo) lo.value=p.coords.longitude.toFixed(4);
     applyLocation(p.coords.latitude,p.coords.longitude,'Your location',{night:false,geocode:true});
@@ -3583,8 +3590,7 @@ function zenOpen(){ const e=document.getElementById('zen-panel'); if(e) e.classL
 function zenClose(){ const e=document.getElementById('zen-panel'); if(e) e.classList.remove('show'); }
 
 function zenInit(){
-  const cy=document.getElementById('zen-city'), dk=document.getElementById('zen-dark');
-  if(cy && cy.options.length<=1){ ZEN_CITIES.forEach((c,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=c[0]; cy.appendChild(o); }); }
+  const dk=document.getElementById('zen-dark');
   if(dk && dk.options.length<=1){ ZEN_DARK.forEach((c,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=c[0]; dk.appendChild(o); }); }
   const la=document.getElementById('zen-lat'), lo=document.getElementById('zen-lon');
   if(la && !la.value) la.value=userLat.toFixed(4);
