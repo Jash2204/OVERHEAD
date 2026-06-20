@@ -2478,10 +2478,9 @@ function draw(now) {
     skyG.addColorStop(0,'#020208');   // absolute deep-space void at the zenith
     skyG.addColorStop(0.7,'#03030e');
     skyG.addColorStop(1,'#050515');   // soft dark cosmic navy toward the horizon
-  } else if(PM){
-    skyG.addColorStop(0,'#000000');
-    skyG.addColorStop(1,'#000000');
   } else {
+    // Output (projector) now renders the SAME palette sky as the control window —
+    // the old pure-black projector path was lifted for the graphical version.
     PAL().dome.forEach(([o,c])=>skyG.addColorStop(o,c));
   }
   ctx.save();
@@ -2492,8 +2491,7 @@ function draw(now) {
     // Wide-field: fill the whole frame; gradient centred on the zenith.
     const wideG=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.hypot(W,H)/2);
     if(SHOW.ambient){ wideG.addColorStop(0,'#020208'); wideG.addColorStop(0.7,'#03030e'); wideG.addColorStop(1,'#050515'); }
-    else if(PM){ wideG.addColorStop(0,'#000'); wideG.addColorStop(1,'#000'); }
-    else { PAL().wide.forEach(([o,c])=>wideG.addColorStop(o,c)); }
+    else { PAL().wide.forEach(([o,c])=>wideG.addColorStop(o,c)); }   // output matches control (palette sky)
     ctx.fillStyle=wideG; ctx.fillRect(0,0,W,H);
   }
   ctx.restore();
@@ -2506,7 +2504,7 @@ function draw(now) {
   // fixed — it is the farthest thing in the sky.
   const PARX = depth3D ? Math.sin(now/9000)*9 : 0;
   const PARY = depth3D ? Math.cos(now/13000)*9 : 0;
-  if(TWI>0 && !PM){
+  if(TWI>0){   // twilight (sunrise/sunset glow) now renders in the projector output too
     ctx.save();
     if(projMode==='dome'){ ctx.beginPath(); ctx.arc(cx,cy,dr,0,Math.PI*2); ctx.clip(); }
     // ── DIRECTIONAL TWILIGHT ── the glow is pinned to the Sun's compass azimuth on
@@ -2526,7 +2524,7 @@ function draw(now) {
     ctx.restore();
   }
   // ── LIGHT-POLLUTION DOME ── warm sodium glow at the horizon for urban Bortle
-  if(SHOW.realistic && BORTLE>=5 && projMode==='dome' && !PM){
+  if(SHOW.realistic && BORTLE>=5 && projMode==='dome'){   // light-pollution glow in output too
     ctx.save();
     ctx.beginPath(); ctx.arc(cx,cy,dr,0,Math.PI*2); ctx.clip();
     const lp=ctx.createRadialGradient(cx,cy,dr*0.62,cx,cy,dr);

@@ -67,7 +67,7 @@ Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side a
 
 ### Projection (physical-world constraints)
 
-- **The projector output path is locked to pure `#000000`.** Any non-black background throws a visibly glowing rectangle on the ceiling, so the projection path never applies a non-black fill — a hardware reality dictating a hard code rule.
+- **The projector output mirrors the on-screen sky.** Earlier versions locked the projection to pure `#000000`, because a non-black field throws a faint glowing rectangle on the ceiling. The graphical pass lifts that: the output window now renders the *same* palette sky, twilight and Milky Way as the control window — what you see on the site is what's projected. The default **Realistic** palette is near-black (`#04060A`), so the ceiling glow stays minimal while the sky still reads as a true night sky; the **Sky Palette** control lets the user trade realism for punch.
 - **Two windows: controls and a clean output.** The projected image has to be free of menus and cursor movement, so I split control and output into separate windows and sync state locally via `postMessage` (with a `BroadcastChannel` backup) — sub-millisecond, no server round-trip.
 - **Calibration uses a real homography.** Ceilings are rarely square to the projector, so four draggable corners feed a verified 3×3 homography (corner-pin) transform, keeping straight horizons and round planets un-skewed on a slanted surface.
 
