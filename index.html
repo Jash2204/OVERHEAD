@@ -367,7 +367,11 @@ body.projector #oh-countdown{display:none}
 /* v9.5: wide-field FOV slider */
 .fov-row{padding:9px 12px 11px;display:flex;flex-direction:column;gap:6px;transition:opacity .2s}
 .fov-row .fov-hd{display:flex;justify-content:space-between;align-items:baseline;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.1em;color:rgba(255,255,255,0.55)}
-.fov-row .fov-hd #fov-val{color:#7fd4ff;font-size:10px}
+.fov-row .fov-hd .fov-num{display:inline-flex;align-items:baseline;gap:1px;color:#7fd4ff;font-size:10px}
+.fov-row .fov-hd .fov-num input#fov-input{width:34px;background:rgba(127,212,255,0.08);border:1px solid rgba(127,212,255,0.25);border-radius:3px;color:#7fd4ff;font-family:'Share Tech Mono',monospace;font-size:10px;text-align:right;padding:1px 3px;outline:none;-moz-appearance:textfield}
+.fov-row .fov-hd .fov-num input#fov-input::-webkit-outer-spin-button,.fov-row .fov-hd .fov-num input#fov-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fov-row .fov-hd .fov-num input#fov-input:focus{border-color:rgba(127,212,255,0.6);background:rgba(127,212,255,0.14)}
+.fov-row .fov-hd .fov-num .fov-deg{color:#7fd4ff;font-size:10px}
 .fov-slider{-webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:3px;background:rgba(255,255,255,0.14);outline:none;cursor:pointer}
 .fov-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;border-radius:50%;background:#7fd4ff;border:0;box-shadow:0 0 6px rgba(127,212,255,0.6);cursor:pointer}
 .fov-slider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#7fd4ff;border:0;box-shadow:0 0 6px rgba(127,212,255,0.6);cursor:pointer}
@@ -650,9 +654,9 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
       <span class="btn-label">VIEW: WIDE<span class="btn-sub">Fill screen · tap for dome</span></span>
     </button>
     <div class="fov-row" id="fov-row">
-      <div class="fov-hd"><span>FIELD OF VIEW</span><span id="fov-val">100&deg;</span></div>
-      <input type="range" id="fov-slider" class="fov-slider" min="70" max="130" step="1" value="100" oninput="setFov(this.value)" aria-label="Field of view">
-      <div class="fov-hint">Wide mode only</div>
+      <div class="fov-hd"><span>FIELD OF VIEW</span><span class="fov-num"><input type="number" id="fov-input" min="30" max="160" step="1" value="100" onchange="setFov(this.value)" oninput="setFov(this.value)" aria-label="Field of view in degrees"><span class="fov-deg">&deg;</span></span></div>
+      <input type="range" id="fov-slider" class="fov-slider" min="30" max="160" step="1" value="100" oninput="setFov(this.value)" aria-label="Field of view">
+      <div class="fov-hint">Drag or type · wide &amp; dome</div>
     </div>
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-ambient" style="--btn-col:#9db8ff" onclick="toggleAmbient(this)">
@@ -1073,6 +1077,7 @@ let lastSatSpawn = 0;
 // 'wide' = rectilinear/perspective wide-field that fills the whole rectangle.
 let projMode = 'wide';   // default: fill the projector
 let fovDeg = 100;        // wide-field vertical FOV — a natural "stand and look up" section (90–120 sensible; 150 crammed the whole sky in)
+let domeFov = 180;       // dome FOV: angular diameter mapped across the dome circle. 180 = full hemisphere (horizon at edge); smaller = zoom toward zenith
 let moonObj = null;
 let mwStars = []; // extra star sprinkle along the Milky Way band
 let projectorMode = false;
@@ -1119,11 +1124,11 @@ setInterval(tickClock,1000); tickClock();
 function DR() { return Math.min(W,H)*0.455*domeScale; } // dome radius px (domeScale>1 = full-bleed)
 
 // Inverse projection: a screen point's elevation angle in degrees.
-// r = (1 - alt/90) * DR  →  alt = 90 * (1 - r/DR)
+// r = ((90-alt)/(domeFov/2)) * DR  →  alt = 90 - (r/DR)*(domeFov/2)
 function elevAtScreen(x, y) {
   const r = Math.hypot(x - W/2, y - H/2);
   if(projMode==='dome'){
-    return 90 * (1 - r / DR());
+    return 90 - (r / DR()) * (domeFov/2);
   }
   // Wide-field inverse: r = f*tan(za) → za = atan(r/f) → alt = 90 - za
   const f = (Math.min(W,H)*0.5) / Math.tan((fovDeg/2)*Math.PI/180);
@@ -1134,8 +1139,10 @@ function elevAtScreen(x, y) {
 function altAzToScreen(altDeg, azRad) {
   const adjAz = azRad - (orientationHeading * Math.PI/180);
   if(projMode==='dome'){
-    // Azimuthal equidistant: zenith centre, horizon on a circle.
-    const r = (1 - Math.max(0,altDeg)/90) * DR();
+    // Azimuthal equidistant: zenith centre, horizon on a circle. domeFov is the
+    // angular diameter that fills the circle — zenith angle (domeFov/2) lands on
+    // the edge. domeFov=180 → horizon at edge (full hemisphere); smaller zooms in.
+    const r = ((90 - Math.max(0,altDeg)) / (domeFov/2)) * DR();
     return { x: W/2 + Math.sin(adjAz)*r, y: H/2 - Math.cos(adjAz)*r, altDeg, onScreen:true };
   }
   // ── WIDE-FIELD (rectilinear) ── looking straight up; zenith at centre.
@@ -1985,10 +1992,26 @@ function toggleProjMode(btn){
   pushState();
 }
 
-// v9.5: user-adjustable wide-field FOV. Only affects wide mode; dome ignores fovDeg.
+// User-adjustable FOV. Wide mode drives fovDeg (rectilinear vertical FOV); dome
+// mode drives domeFov (angular diameter across the dome circle). The single
+// slider + number input edit whichever mode is active.
+function fovRange(){
+  // Wide caps below 180 to avoid the tan(90\u00B0) focal-length singularity.
+  return projMode==='dome' ? {min:30,max:180} : {min:30,max:160};
+}
+function updateFovUI(){
+  const cur = projMode==='dome' ? domeFov : fovDeg;
+  const rg=fovRange();
+  const sl=document.getElementById('fov-slider');
+  if(sl){ sl.min=rg.min; sl.max=rg.max; sl.value=Math.round(cur); }
+  const inp=document.getElementById('fov-input');
+  if(inp){ inp.min=rg.min; inp.max=rg.max; if(document.activeElement!==inp) inp.value=Math.round(cur); }
+}
 function setFov(v){
-  fovDeg = +v;
-  const lbl=document.getElementById('fov-val'); if(lbl) lbl.textContent=Math.round(fovDeg)+'\u00B0';
+  v=+v; if(!isFinite(v)) return;
+  const rg=fovRange(); v=Math.max(rg.min,Math.min(rg.max,v));
+  if(projMode==='dome') domeFov=v; else fovDeg=v;
+  updateFovUI();
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
   reprojectTraffic();
   pushState();
@@ -2007,10 +2030,13 @@ function setPalette(name){
 }
 function syncFovCtrl(){
   const row=document.getElementById('fov-row'); if(!row) return;
-  const dome=(projMode==='dome');
-  row.classList.toggle('disabled', dome);
-  const sl=document.getElementById('fov-slider'); if(sl) sl.disabled=dome;
-  const hint=row.querySelector('.fov-hint'); if(hint) hint.textContent = dome ? 'Switch to wide mode to adjust' : 'Wide mode only';
+  // FOV is adjustable in both modes now — never disabled.
+  row.classList.remove('disabled');
+  const sl=document.getElementById('fov-slider'); if(sl) sl.disabled=false;
+  const inp=document.getElementById('fov-input'); if(inp) inp.disabled=false;
+  const hint=row.querySelector('.fov-hint');
+  if(hint) hint.textContent = projMode==='dome' ? 'Zoom the dome · drag or type' : 'Wide field · drag or type';
+  updateFovUI();
 }
 
 // ── SCREEN ORIENTATION ── Manually choose which compass bearing the TOP of the
@@ -2085,7 +2111,7 @@ function collectState() {
     skyTimeOffsetMs,
     SHOW: {...SHOW},
     BORTLE, depth3D, palette,
-    domeScale, projMode, fovDeg,
+    domeScale, projMode, fovDeg, domeFov,
     orientationHeading,
     // time offset lets the output match any time-scrubbing in future; 0 = live now
     tOffset: 0,
@@ -2095,7 +2121,7 @@ function collectState() {
 // Apply received state (output side)
 function applyState(s) {
   if(!s) return;
-  const prevProj=projMode, prevFov=fovDeg;   // detect a projection change from the sync
+  const prevProj=projMode, prevFov=fovDeg, prevDomeFov=domeFov;   // detect a projection change from the sync
   if(typeof s.userLat==='number') userLat = s.userLat;
   if(typeof s.userLon==='number') userLon = s.userLon;
   if(s.locationName) locationName = s.locationName;
@@ -2104,6 +2130,7 @@ function applyState(s) {
   if(typeof s.domeScale==='number') domeScale = s.domeScale;
   if(s.projMode) projMode = s.projMode;
   if(typeof s.fovDeg==='number') fovDeg = s.fovDeg;
+  if(typeof s.domeFov==='number') domeFov = s.domeFov;
   if(typeof s.BORTLE==='number') BORTLE = s.BORTLE;
   if(s.palette && PALETTES[s.palette]) palette = s.palette;
   if(typeof s.depth3D==='boolean') depth3D = s.depth3D;
@@ -2112,7 +2139,7 @@ function applyState(s) {
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
   // Re-anchor aircraft only if this sync actually changed the projection (else we'd
   // needlessly wipe plane trails on every unrelated state push).
-  if(projMode!==prevProj || fovDeg!==prevFov) reprojectTraffic();
+  if(projMode!==prevProj || fovDeg!==prevFov || domeFov!==prevDomeFov) reprojectTraffic();
 }
 
 // Push current state to the output window (control side). Multi-channel for robustness.
@@ -2537,7 +2564,8 @@ function draw(now) {
   // ── ALTITUDE RINGS ──
   if(!PM && !SHOW.ambient && projMode==='dome'){
     [30,60].forEach(a=>{
-      const rr=(1-a/90)*dr;
+      const rr=((90-a)/(domeFov/2))*dr;            // match the dome FOV mapping
+      if(rr>dr+0.5) return;                          // ring zoomed off-screen
       ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2);
       ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
       ctx.setLineDash([3,7]); ctx.stroke(); ctx.setLineDash([]);
