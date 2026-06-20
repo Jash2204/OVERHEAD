@@ -2565,7 +2565,9 @@ function draw(now) {
   if(!SHOW.ambient && projMode==='dome'){
   const cardSize=PM?14:10;
   [['N',0],['NE',45],['E',90],['SE',135],['S',180],['SW',225],['W',270],['NW',315]].forEach(([l,d])=>{
-    const r=d*Math.PI/180;
+    // Rotate labels by the same heading altAzToScreen applies, so the cardinal
+    // ring stays aligned with the visible sky (e.g. facing W puts 'W' at top).
+    const r=(d-orientationHeading)*Math.PI/180;
     const lx=cx+Math.sin(r)*(dr+(PM?26:18)), ly=cy-Math.cos(r)*(dr+(PM?26:18));
     const major=l.length===1;
     ctx.fillStyle=major?(PM?'rgba(255,255,255,0.8)':'rgba(0,212,255,0.55)'):(PM?'rgba(255,255,255,0.3)':'rgba(0,212,255,0.2)');
