@@ -2,7 +2,7 @@
 
 OVERHEAD ("the App", https://overhead.world) is built on open data and open-source
 work. This file records the attribution and licence notices that those sources
-require. It is part of the v10 release.
+require. It applies to the current release of OVERHEAD.
 
 ---
 
@@ -38,10 +38,12 @@ aircraft and geocoding feeds.
 
 ## Astronomical methods
 
-- **Planetary positions** use the **VSOP87** planetary theory
-  (P. Bretagnon & G. Francou, *Bureau des Longitudes*, 1988).
+- **Planetary positions** are computed from **mean Keplerian orbital elements**
+  (solving Kepler's equation for each planet and for Earth, then taking the
+  geocentric difference) — a low-precision method accurate to roughly 1°, suitable
+  for a naked-eye ceiling view rather than precise ephemeris work.
 - Sidereal time, solar position, lunar phase and rise/set geometry use standard
-  published astronomical algorithms.
+  published astronomical algorithms (truncated Meeus).
 - Named-star and constellation geometry derive from standard public-domain
   bright-star catalogue data.
 

@@ -1,6 +1,6 @@
 # OVERHEAD — Changelog
 
-## v10 — "FLEET" (June 2026)
+## v10 — aircraft silhouettes (June 2026)
 
 The aircraft release. Planes stop being abstract nav-light dots and become recognisable
 type-accurate silhouettes that move with the real world, the projector output gains the full
@@ -31,12 +31,14 @@ twilight tint, sky palette and Milky Way included — so what you see on the sit
 what's projected. The default **Realistic** palette stays near-black (`#04060A`) to keep the
 ceiling glow minimal, and a **Sky Palette** control lets you trade realism for punch.
 
-### Manual screen-orientation compass
-The device-orientation sensor path was removed in favour of a **manual orientation dial**:
-you set which compass bearing the top of the screen faces, by dragging the dial or typing a
-bearing, and the whole sky rotates to match. The dome's **N / NE / E / … cardinal ring now
-rotates with that heading**, so the labels always line up with the visible sky (facing west
-puts W at the top). A small facing-compass indicator was added for mobile.
+### Manual screen orientation
+Rotating the sky is now done by hand. The device-orientation sensor no longer drives the
+view; instead a **manual orientation dial** lets you set which compass bearing the top of the
+screen faces — by dragging the dial or typing a bearing — and the whole sky rotates to match.
+The dome's **N / NE / E / … cardinal ring now rotates with that heading**, so the labels
+always line up with the visible sky (facing west puts W at the top). Separately, a small
+opt-in **facing compass** was added for mobile; it still reads the device orientation sensor,
+but purely as a "which way am I facing" indicator — it never moves the sky.
 
 ### ZENYTH place search
 Location-setting gained a **search-any-place** box (city, town, postcode or address, via
@@ -151,7 +153,7 @@ real one. The placeholder sky is clearly labelled as such.
 
 ### Compliance docs (new)
 Added `PRIVACY.html`, `TERMS.html` and `NOTICE.md` (ODbL attribution for adsb.lol and
-OpenStreetMap/Nominatim, plus font, VSOP87 and webm-muxer notices). Privacy/Terms are
+OpenStreetMap/Nominatim, plus font, astronomy-method and webm-muxer notices). Privacy/Terms are
 good-faith drafts and carry placeholders (`[CONTACT EMAIL]`, operator name,
 jurisdiction, date) to fill, and should be reviewed before being relied upon.
 
@@ -578,7 +580,7 @@ Maximum freedom, plug-and-play simple: wide fills the screen for the common case
 ## [v3.0.0] — June 2026 — Full Feature Release
 
 ### Added
-- **Planets** — Mercury, Venus, Mars, Jupiter, Saturn calculated via simplified VSOP87 model. Saturn rendered with ring sketch. Click for RA/Dec and altitude data.
+- **Planets** — Mercury, Venus, Mars, Jupiter, Saturn calculated via a simplified Keplerian orbital-element model. Saturn rendered with ring sketch. Click for RA/Dec and altitude data.
 - **Meteor Showers** — 8 annual showers catalogued (Quadrantids, Lyrids, Eta Aquariids, Perseids, Orionids, Leonids, Geminids, Ursids). Active showers display animated streaks from real radiant points, scaled by ZHR and proximity to peak date.
 - **ISS Orbital Path** — 90-minute predicted ground track projected onto dome as fading dotted arc. Propagated using simplified circular orbit at 51.6° inclination with Earth rotation accounted for.
 - **Overhead Alert** — Pulsing centre-screen callout when any aircraft passes within 25km directly above the user. Auto-dismisses after 8 seconds.

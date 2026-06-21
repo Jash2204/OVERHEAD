@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>OVERHEAD v10 — Live Sky Projector</title>
+<title>OVERHEAD — Live Sky Projector</title>
 <style>
 /* v9: self-hosted fonts — no calls to Google (GDPR: no visitor IPs leak to a third party) */
 @font-face{font-family:'Share Tech Mono';font-style:normal;font-weight:400;font-display:swap;
@@ -1433,7 +1433,7 @@ function buildMilkyWay() {
 }
 
 // ═══════════════════════════════════════════════════════
-// PLANETS (simplified VSOP87 — accurate to ~1°)
+// PLANETS (low-precision Keplerian orbital elements — accurate to ~1°)
 // ═══════════════════════════════════════════════════════
 const PLANET_DATA = [
   {name:'Mercury',col:'200,180,160',size:3.5,

@@ -12,10 +12,10 @@ OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky 
 
 ## What makes it unique
 
-- **Zero hardware, zero cost.** Comparable ceiling trackers (e.g. *Skylight*) need a Raspberry Pi + an RTL-SDR radio (~$400–1,500) to receive ADS-B. OVERHEAD needs only a browser and any projector — it pulls live aircraft from an open data API instead of radio.
+- **Zero extra hardware.** Comparable ceiling trackers receive ADS-B over the air, so they need dedicated radio hardware — typically a Raspberry Pi plus an RTL-SDR receiver and antenna. OVERHEAD needs only a browser and any projector — it pulls live aircraft from an open data API instead of radio, so there's nothing to buy, build or wire up.
 - **Live traffic *and* accurate astronomy in one view** — most projects do one or the other.
 - **Plug-and-play, yet deeply tunable.** It just works the second you open the site — share location (or don't) and look up. But almost everything is a control: every sky layer toggles independently, plus light-pollution (Bortle) level, field of view, render resolution, time-lapse speed/quality up to 4K, four-corner projector calibration, and a teleport-anywhere location/sky-clock engine (**ZENYTH**). Zero-config for a casual glance; a deep control surface when you want one.
-- **Privacy-first and stateless** — no account, no database, nothing about you stored anywhere.
+- **Privacy-first and stateless** — no account, no server-side database, no personal data stored. Your location is computed in your browser and is never saved; only a few non-identifying preferences (render scale, calibration, time-lapse settings) are cached locally on your own device.
 - **One file.** No build step, no framework, no install — it runs from a static host or even `file://`.
 
 ## Quick start
@@ -33,17 +33,17 @@ OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky 
 | ✈ **Live aircraft** | Real ADS-B positions (adsb.lol), shown as type-accurate silhouettes, polled in the background and scaled by true slant distance |
 | ◎ **ISS** | Live position + predicted 90-minute orbital ground track |
 | ★ **Stars / constellations** | Named stars at accurate Alt/Az; constellation lines; altitude-accurate scintillation |
-| ◉ **Planets / Moon** | VSOP87-computed planets; live Moon phase with earthshine |
+| ◉ **Planets / Moon** | Planets from Keplerian orbital elements (~1°); live Moon phase with earthshine |
 | ☄ **Meteor showers** | 8 annual showers, animated streaks from the correct radiant |
 | 🌌 **Milky Way** | Galactic plane as a soft band, oriented correctly to Sagittarius |
 | ☀ **Twilight engine** | Live solar altitude tints the sky through real twilight phases |
-| ◐ **Light pollution** | Bortle 1–7 model affecting star density, Milky Way and horizon glow |
+| ◐ **Light pollution** | Four Bortle levels (1/3/5/7, pristine → inner-city) affecting star density, Milky Way and horizon glow |
 | ◈ **Depth / parallax** | Per-star depth layers for a subtle 3D feel |
 | ⦿ **Projector tools** | Corner-pin calibration, clean output window, in-browser time-lapse capture |
 
 ## Architecture at a glance
 
-Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side astronomy** (VSOP87 + sidereal time) → live data (aircraft, ISS, geocoding) via a **hardened serverless proxy** on Vercel → a **two-window** design (controls in one, clean projection in the other) synced locally → deployed as **static files on Vercel's edge**, auto-published from GitHub.
+Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side astronomy** (Keplerian planet positions + sidereal time) → live data (aircraft, ISS, geocoding) via a **hardened serverless proxy** on Vercel → a **two-window** design (controls in one, clean projection in the other) synced locally → deployed as **static files on Vercel's edge**, auto-published from GitHub.
 
 ---
 
@@ -73,7 +73,7 @@ Single `index.html` (HTML/CSS/JS) → **Canvas2D** rendering → **client-side a
 
 ### Data & accuracy
 
-- **Astronomy is computed client-side (VSOP87 + sidereal time).** Calculating planet, Sun and twilight positions in the browser keeps the app private and serverless and avoids paying for an ephemeris API.
+- **Astronomy is computed client-side (Keplerian orbital elements + sidereal time).** Planet positions come from a low-precision Keplerian model (mean orbital elements, Kepler's equation; ~1° accuracy) and the Sun/Moon from truncated Meeus algorithms — calculating it all in the browser keeps the app private and serverless and avoids paying for an ephemeris API. The trade-off is degree-level, not arc-second, accuracy — which is right for a naked-eye ceiling view.
 - **Live data comes from open APIs (adsb.lol for aircraft, Nominatim for geocoding — both ODbL).** Free, open data with no hardware is the core differentiator from radio-based trackers; the attribution obligations are met in `NOTICE.md`.
 - **The proxy is hardened, not a passthrough.** *Every* live request — aircraft, ISS and geocoding — flows through it, and it's locked to an allowlist of just those three data hosts (so it can't be abused as an open relay). It's edge-cached per host (a short TTL for moving aircraft and the ISS, a long one for place names) to respect Nominatim's ~1 request/second policy and to scale cheaply, sends a proper identifying `User-Agent` as that policy requires, and keeps each visitor's IP off the upstream providers. Each call is time-boxed, so a stalled network can't freeze startup. Crucially, the aircraft request carries the user's coordinates, so it **never falls back to a public third-party CORS relay** — its only fallbacks are the same allowlisted hosts, keeping that location strictly inside the three disclosed services.
 
@@ -91,7 +91,7 @@ I'd rather be honest about the edges than hide them.
 - **No full daytime sky.** Deliberate: it's a *night-sky* ceiling projector, and a blue daylight sky is pointless on a ceiling. The solar-altitude groundwork is already in place if I change my mind.
 - **Satellites are a simulated visual model, not a live TLE/SGP4 feed.** A real two-line-element feed plus an orbital propagator is on the list, but it adds weight and another data dependency for limited visible payoff — so it's deferred, not abandoned.
 - **Overnight projection can be cut short by OS display sleep.** Browser tab-throttling isn't the problem (the output window stays visible), but the operating system can still sleep the display; I haven't yet wired up the Screen Wake Lock API to hold it awake.
-- **The bespoke 3D aircraft model is still in progress.** v10 "FLEET" shipped a library of type-accurate category silhouettes — narrowbody, widebody, helicopter, light GA prop and business jet — picked from each aircraft's live type, drawn with correct nav-lights, rotated to true ground track and scaled by slant distance. The remaining piece is a self-modelled 3D Boeing 777-300ER I'm building from scratch in Blender; that's effort/time, not budget.
+- **The bespoke 3D aircraft model is still in progress.** v10 shipped a library of type-accurate category silhouettes — narrowbody, widebody, helicopter, light GA prop and business jet — picked from each aircraft's live type, drawn with correct nav-lights, rotated to true ground track and scaled by slant distance. The remaining piece is a self-modelled 3D Boeing 777-300ER I'm building from scratch in Blender; that's effort/time, not budget.
 - **Southern-hemisphere constellation content is incomplete** (e.g. Crux, the Magellanic Clouds) — a content/time gap rather than an architectural one.
 - **Public Nominatim caps at ~1 request/second.** Caching keeps me comfortably inside that at current scale; if the site got popular I'd self-host Nominatim or move to a paid geocoder — a cost I'm deliberately deferring until there's demand to justify it.
 - **No volumetric clouds yet.** A raymarched cloudscape is designed but shelved: it carries real per-frame GPU cost and conflicts with the pure-black ceiling path.
@@ -101,7 +101,7 @@ I'd rather be honest about the edges than hide them.
 
 ## Tech stack
 
-Vanilla HTML/CSS/JS (single file) · Canvas2D · Web Workers · WebCodecs + webm-muxer (in-browser time-lapse) · VSOP87 astronomy · Vercel (static hosting + serverless proxy) · adsb.lol & Nominatim/OpenStreetMap data.
+Vanilla HTML/CSS/JS (single file) · Canvas2D · Web Workers · WebCodecs + webm-muxer (in-browser time-lapse) · Keplerian planet positions + Meeus Sun/Moon · Vercel (static hosting + serverless proxy) · adsb.lol & Nominatim/OpenStreetMap data.
 
 ## Project layout
 
@@ -127,7 +127,7 @@ OVERHEAD's source is free and open-source under the **GNU AGPL-3.0**, with a sep
 
 ## Credits
 
-Live aircraft data © adsb.lol contributors (ODbL). Geocoding © OpenStreetMap contributors via Nominatim (ODbL). ISS positions via wheretheiss.at. Planetary theory: VSOP87. Time-lapse muxing: webm-muxer (MIT). Fonts under the SIL Open Font License. Full notices in [`NOTICE.md`](NOTICE.md).
+Live aircraft data © adsb.lol contributors (ODbL). Geocoding © OpenStreetMap contributors via Nominatim (ODbL). ISS positions via wheretheiss.at. Planet positions from Keplerian orbital elements; Sun & Moon via truncated Meeus algorithms. Time-lapse muxing: webm-muxer (MIT). Fonts under the SIL Open Font License. Full notices in [`NOTICE.md`](NOTICE.md).
 
 ## Author
 
