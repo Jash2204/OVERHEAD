@@ -1,5 +1,60 @@
 # OVERHEAD — Changelog
 
+## v10 — "FLEET" (June 2026)
+
+The aircraft release. Planes stop being abstract nav-light dots and become recognisable
+type-accurate silhouettes that move with the real world, the projector output gains the full
+realistic sky, and the sky's orientation becomes something you set by hand rather than a
+device sensor. The astronomy engine and the hardened data path from v9.5 are unchanged.
+
+### Aircraft silhouettes (the headline)
+Each tracked aircraft is now drawn as a **type-accurate underside silhouette** instead of a
+plain point. The live ADS-B type maps to one of five category shapes — narrowbody twin-jet,
+widebody/heavy, helicopter, light GA prop and business jet — each a hand-drawn SVG with
+correct nav-lights (red port, green starboard, white tail, red belly beacon), rotated to the
+aircraft's true ground track and scaled by slant distance. The set lives in `sprites/` with a
+manifest documenting each type's real dimensions and relative scale. A **SPRITES** toggle
+(on by default) falls back to clean nav-light points, and opening the app with `#demo` drops
+in one sample of every type so the silhouettes can be checked without a live feed.
+
+### True-to-the-world aircraft motion
+Aircraft now animate in **world space** between ADS-B polls and keep their heading across a
+refresh, so a plane no longer "teleports" or snaps to a new position each fetch — it glides
+along its real track. Switching between dome and wide views no longer leaves a stray
+concentric **"ring" artifact** of stale aircraft positions; the traffic layer is re-anchored
+cleanly on every projection change.
+
+### Output window = the full realistic sky
+The projector output used to be locked to pure `#000000` to avoid throwing a glowing
+rectangle on the ceiling. It now renders the **same palette sky** as the control window —
+twilight tint, sky palette and Milky Way included — so what you see on the site is exactly
+what's projected. The default **Realistic** palette stays near-black (`#04060A`) to keep the
+ceiling glow minimal, and a **Sky Palette** control lets you trade realism for punch.
+
+### Manual screen-orientation compass
+The device-orientation sensor path was removed in favour of a **manual orientation dial**:
+you set which compass bearing the top of the screen faces, by dragging the dial or typing a
+bearing, and the whole sky rotates to match. The dome's **N / NE / E / … cardinal ring now
+rotates with that heading**, so the labels always line up with the visible sky (facing west
+puts W at the top). A small facing-compass indicator was added for mobile.
+
+### ZENYTH place search
+Location-setting gained a **search-any-place** box (city, town, postcode or address, via
+Nominatim) on top of the existing GPS and manual-coordinate options, with **London** as a
+sensible default before a location is set. Ambient mode now also works inside dome view.
+
+### Field of view, reworked
+The FOV control was widened and made universal. The range grew from 70–130° to **30–160° in
+wide mode and 30–180° in dome mode**, a **direct number input** sits beside the slider for
+exact entry, and **FOV is now adjustable in dome mode** too — it zooms the hemisphere toward
+the zenith (180° = full hemisphere, the previous fixed behaviour). Wide and dome each keep
+their own value and both sync to the output window.
+
+### Overhead alert (opt-in)
+Added an **opt-in overhead alert** (off by default) for when an aircraft passes near your
+zenith. The always-on "directly overhead" banner for aircraft was removed so the sky stays
+uncluttered by default; the ISS overhead callout is kept.
+
 ## v9.5 — planetary accuracy (June 2026)
 
 A correctness and UX point release on top of v9 "CONCORD". The star/sidereal engine,

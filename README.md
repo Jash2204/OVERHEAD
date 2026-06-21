@@ -30,7 +30,7 @@ OVERHEAD is a browser-based, real-time planetarium that projects the *live* sky 
 
 | | |
 |---|---|
-| ✈ **Live aircraft** | Real ADS-B positions (adsb.lol), polled in the background, scaled by true slant distance |
+| ✈ **Live aircraft** | Real ADS-B positions (adsb.lol), shown as type-accurate silhouettes, polled in the background and scaled by true slant distance |
 | ◎ **ISS** | Live position + predicted 90-minute orbital ground track |
 | ★ **Stars / constellations** | Named stars at accurate Alt/Az; constellation lines; altitude-accurate scintillation |
 | ◉ **Planets / Moon** | VSOP87-computed planets; live Moon phase with earthshine |
@@ -91,7 +91,7 @@ I'd rather be honest about the edges than hide them.
 - **No full daytime sky.** Deliberate: it's a *night-sky* ceiling projector, and a blue daylight sky is pointless on a ceiling. The solar-altitude groundwork is already in place if I change my mind.
 - **Satellites are a simulated visual model, not a live TLE/SGP4 feed.** A real two-line-element feed plus an orbital propagator is on the list, but it adds weight and another data dependency for limited visible payoff — so it's deferred, not abandoned.
 - **Overnight projection can be cut short by OS display sleep.** Browser tab-throttling isn't the problem (the output window stays visible), but the operating system can still sleep the display; I haven't yet wired up the Screen Wake Lock API to hold it awake.
-- **Aircraft are stylised nav-light points today.** A self-modelled 3D Boeing 777-300ER plus a library of category silhouettes (airliner, widebody, helicopter, GA, business jet…) is the headline of v10 — this is effort/time, not budget; I'm building the model from scratch in Blender.
+- **The bespoke 3D aircraft model is still in progress.** v10 "FLEET" shipped a library of type-accurate category silhouettes — narrowbody, widebody, helicopter, light GA prop and business jet — picked from each aircraft's live type, drawn with correct nav-lights, rotated to true ground track and scaled by slant distance. The remaining piece is a self-modelled 3D Boeing 777-300ER I'm building from scratch in Blender; that's effort/time, not budget.
 - **Southern-hemisphere constellation content is incomplete** (e.g. Crux, the Magellanic Clouds) — a content/time gap rather than an architectural one.
 - **Public Nominatim caps at ~1 request/second.** Caching keeps me comfortably inside that at current scale; if the site got popular I'd self-host Nominatim or move to a paid geocoder — a cost I'm deliberately deferring until there's demand to justify it.
 - **No volumetric clouds yet.** A raymarched cloudscape is designed but shelved: it carries real per-frame GPU cost and conflicts with the pure-black ceiling path.
@@ -110,6 +110,7 @@ OVERHEAD/
 ├── index.html              # the entire app (UI, rendering, astronomy, sync)
 ├── api/proxy.js            # Vercel serverless proxy (allowlisted + edge-cached)
 ├── proxy.js                # local dev proxy (Node)
+├── sprites/                # aircraft silhouette set (SVG) + manifest
 ├── fonts/                  # self-hosted fonts (no third-party CDN calls)
 ├── vercel.json             # deploy config
 ├── PRIVACY.html            # privacy policy

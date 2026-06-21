@@ -28,6 +28,6 @@ Thanks for downloading OVERHEAD! Here's how to get the sky on your ceiling.
 - Everything except planes/ISS works offline — stars and planets are calculated on your machine
 
 ## Want it online instead?
-You can host OVERHEAD for free on Vercel (no install for visitors) — see the **Deployment** section of `README.md`. Recording and crash-recovery work on the live HTTPS site too.
+You can host OVERHEAD for free on Vercel (no install for visitors) — see **Cost, deployment & licensing** in `README.md`. Recording and crash-recovery work on the live HTTPS site too.
 
-Problems? The README.md has full troubleshooting.
+Problems? See `README.md` for the architecture and design notes.
