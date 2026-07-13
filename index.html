@@ -1104,7 +1104,8 @@ let projectorMode = false;
 let orientationHeading = 0; // degrees; kept at 0 (the device-orient feature was removed)
 
 let planeMap = {};
-let planeRetries = 0;
+let planeBackoffMs = 8000;   // aircraft-feed exponential backoff delay (resets to 8s on success)
+let planeInFlight  = false;  // guard: never run two fetchPlanes() cycles at once
 let calOpen = false;
 function setStatus(msg){
   const el=document.getElementById('net-status');
@@ -1808,18 +1809,22 @@ let planeWorker=null, planeReqId=0;
   try{
     if(typeof Worker==='undefined'||typeof Blob==='undefined') return;
     const code=`self.onmessage=async function(e){
-      var d=e.data, out=null;
+      var d=e.data, out=null, throttled=false;
       for(var i=0;i<d.sources.length;i++){
         var s=d.sources[i];
         try{
           var r=await fetch(s.url,{signal:AbortSignal.timeout(15000)});
+          // 420/429 = upstream throttling us. Stop the cascade (don't fall through
+          // to the direct adsb.lol hop, whose error responses have no CORS headers)
+          // and report it so fetchPlanes() can back off.
+          if(r.status===420||r.status===429){ throttled=true; break; }
           if(!r.ok) continue;
           var js=await r.json();
           var ac=js.ac||js.aircraft||[];
           if(ac&&ac.length>0){ out=ac; break; }
         }catch(_){}
       }
-      self.postMessage({id:d.id, aircraft:out});
+      self.postMessage({id:d.id, aircraft:out, throttled:throttled});
     };`;
     const url=URL.createObjectURL(new Blob([code],{type:'application/javascript'}));
     planeWorker=new Worker(url);
@@ -1828,35 +1833,51 @@ let planeWorker=null, planeReqId=0;
 })();
 
 function buildPlaneSources(){
-  const nm=Math.min(250, Math.round(CFG.BOX_DEG*60));
-  const lat4=userLat.toFixed(4), lon4=userLon.toFixed(4);
-  const base=`https://api.adsb.lol/v2/lat/${lat4}/lon/${lon4}/dist/${nm}`;
+  // 150 nm radius (down from 250) — a narrower query is lighter on adsb.lol and
+  // still covers the whole visible sky. Deliberately independent of CFG.BOX_DEG,
+  // which is used elsewhere for the sky-box geometry.
+  const nm=150;
+  // Coarsen coordinates to 1 dp (~11 km) FOR THE adsb.lol URL ONLY. A wide-radius
+  // aircraft query doesn't need finer, and it means every user in a region shares
+  // one Vercel edge-cache key (the cache keys on the full URL) — so a 4-dp per-user
+  // URL no longer forces a cold upstream hit on each request. Full-precision
+  // userLat/userLon are still used everywhere else (star math, geoToScreen, …).
+  const lat1=userLat.toFixed(1), lon1=userLon.toFixed(1);
+  const base=`https://api.adsb.lol/v2/lat/${lat1}/lon/${lon1}/dist/${nm}`;
   const enc=encodeURIComponent(base);
   // Worker fetches need absolute URLs; the proxy is same-origin.
   // Privacy: these are the ONLY hosts the aircraft feed may contact — the request
   // carries the user's coordinates, so it never falls back to a public CORS relay
   // (which would leak that location to an undisclosed third party).
   const origin=(location.protocol==='file:')?'':location.origin;
-  return [
-    {url:`${origin}/api/proxy?url=${enc}`},      // 1. Vercel proxy (primary live, edge-cached)
-    {url:`http://localhost:3001/?url=${enc}`},   // 2. local dev proxy
-    {url:base},                                  // 3. direct (adsb.lol sends CORS)
+  const isLocal=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:');
+  const sources=[
+    {url:`${origin}/api/proxy?url=${enc}`},         // 1. Vercel proxy (primary live, edge-cached)
   ];
+  if(isLocal) sources.push({url:`http://localhost:3001/?url=${enc}`}); // 2. local dev proxy — local only
+  sources.push({url:base});                         // 3. direct (adsb.lol sends CORS)
+  return sources;
 }
 function fetchPlanesViaWorker(sources){
+  // Resolves {aircraft:array|null, throttled:bool} so fetchPlanes() can tell a
+  // 420/429 throttle apart from a plain empty/failed cycle.
   return new Promise(resolve=>{
     const id=++planeReqId;
-    const to=setTimeout(()=>{ cleanup(); resolve(null); }, 20000);
-    function onMsg(e){ if(e.data&&e.data.id===id){ cleanup(); resolve(e.data.aircraft||null); } }
+    const to=setTimeout(()=>{ cleanup(); resolve({aircraft:null,throttled:false}); }, 20000);
+    function onMsg(e){ if(e.data&&e.data.id===id){ cleanup(); resolve({aircraft:e.data.aircraft||null, throttled:!!e.data.throttled}); } }
     function cleanup(){ clearTimeout(to); planeWorker.removeEventListener('message',onMsg); }
     planeWorker.addEventListener('message',onMsg);
-    try{ planeWorker.postMessage({id, sources}); }catch(err){ cleanup(); resolve(null); }
+    try{ planeWorker.postMessage({id, sources}); }catch(err){ cleanup(); resolve({aircraft:null,throttled:false}); }
   });
 }
 async function fetchPlanesInline(sources){
   for(const s of sources){
     try{
       const r=await fetch(s.url,{signal:AbortSignal.timeout(15000)});
+      // 420/429 = upstream throttling us. Stop the cascade immediately (don't fall
+      // through to the direct adsb.lol hop, whose error responses lack CORS headers
+      // and spam the console) and signal "throttled" so fetchPlanes() backs off.
+      if(r.status===420||r.status===429) return {throttled:true};
       if(!r.ok) continue;
       const js=await r.json();
       const ac=js.ac||js.aircraft||[];
@@ -1866,24 +1887,39 @@ async function fetchPlanesInline(sources){
   return null;
 }
 async function fetchPlanes() {
+  // Overlap guard: a backoff retry must never stack with the regular 90s
+  // setInterval tick. If a fetch is already awaiting the network, skip this call.
+  if(planeInFlight) return;
+  planeInFlight=true;
+  try{
   const sources=buildPlaneSources();
-  let aircraft = planeWorker ? await fetchPlanesViaWorker(sources) : await fetchPlanesInline(sources);
-  // If the worker came back empty once, try inline as a belt-and-braces backup.
-  if((!aircraft||!aircraft.length) && planeWorker) aircraft = await fetchPlanesInline(sources);
-  if(!aircraft){
-    lastFetchTime=performance.now();
-    // Retry with backoff and keep the user informed — bad WiFi shouldn't look frozen
-    planeRetries++;
-    if(planeRetries<=5){
-      setStatus(`AIRCRAFT FEED: network issue — retry ${planeRetries}/5 in 8s`);
-      setTimeout(fetchPlanes, 8000);
-    } else {
-      setStatus('AIRCRAFT FEED: offline — will retry on next 90s cycle');
-      planeRetries=0;
+  let aircraft=null, throttled=false;
+  if(planeWorker){
+    const w=await fetchPlanesViaWorker(sources);
+    aircraft=w.aircraft; throttled=w.throttled;
+    // If the worker came back empty (and wasn't throttled), try inline as a
+    // belt-and-braces backup.
+    if((!aircraft||!aircraft.length) && !throttled){
+      const inl=await fetchPlanesInline(sources);
+      if(inl&&inl.throttled) throttled=true; else aircraft=inl;
     }
+  } else {
+    const inl=await fetchPlanesInline(sources);
+    if(inl&&inl.throttled) throttled=true; else aircraft=inl;
+  }
+  if(!aircraft||!aircraft.length){
+    lastFetchTime=performance.now();
+    // Exponential backoff so sustained failures (esp. 420/429) don't hammer the
+    // upstream. A throttle skips the 8s start and jumps to ≥60s; every failure
+    // then doubles the delay, capped at 5 min. A single success resets it.
+    if(throttled && planeBackoffMs<60000) planeBackoffMs=60000;
+    const wait=planeBackoffMs;
+    planeBackoffMs=Math.min(planeBackoffMs*2, 300000);
+    setStatus(`AIRCRAFT FEED: ${throttled?'rate-limited':'network issue'} — retry in ${Math.round(wait/1000)}s`);
+    setTimeout(fetchPlanes, wait);
     return;
   }
-  planeRetries=0;
+  planeBackoffMs=8000;   // success — reset the backoff cadence
   setStatus(`AIRCRAFT FEED: live`);
   const now=performance.now();
   const seen=new Set();
@@ -1915,6 +1951,9 @@ async function fetchPlanes() {
   Object.keys(planeMap).forEach(cs=>{if(!seen.has(cs))delete planeMap[cs];});
   document.getElementById('s-planes').textContent=Object.keys(planeMap).length;
   lastFetchTime=performance.now();
+  } finally {
+    planeInFlight=false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════

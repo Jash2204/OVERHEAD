@@ -18,7 +18,7 @@ const { URL } = require('url');
 // tuned to how fast its data changes: aircraft & ISS move, so a short TTL; place
 // names effectively never change, so a long one.
 const ALLOW = {
-  'api.adsb.lol':                 's-maxage=10, stale-while-revalidate=20',
+  'api.adsb.lol':                 's-maxage=25, stale-while-revalidate=60',
   'api.wheretheiss.at':           's-maxage=5,  stale-while-revalidate=15',
   'nominatim.openstreetmap.org':  's-maxage=86400, stale-while-revalidate=604800',
 };
@@ -45,9 +45,12 @@ module.exports = async (req, res) => {
   return new Promise((resolve) => {
     const opts = { headers: { 'User-Agent': 'OVERHEAD/9.5 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
     const r = https.get(upstream, opts, (up) => {
+      // Never cache a throttle response as if it were data — if the upstream is
+      // rate-limiting us (420/429), tell Vercel's edge not to store it.
+      const throttled = up.statusCode === 420 || up.statusCode === 429;
       res.writeHead(up.statusCode || 502, {
         'Content-Type': 'application/json',
-        'Cache-Control': cacheControl,
+        'Cache-Control': throttled ? 'no-store' : cacheControl,
       });
       up.pipe(res);
       up.on('end', resolve);

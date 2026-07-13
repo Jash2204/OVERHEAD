@@ -16,7 +16,7 @@ const { URL } = require('url');
 const PORT = process.env.PORT || 3001;
 
 const ALLOW = {
-  'api.adsb.lol':                 's-maxage=10, stale-while-revalidate=20',
+  'api.adsb.lol':                 's-maxage=25, stale-while-revalidate=60',
   'api.wheretheiss.at':           's-maxage=5,  stale-while-revalidate=15',
   'nominatim.openstreetmap.org':  's-maxage=86400, stale-while-revalidate=604800',
 };
@@ -42,9 +42,11 @@ const server = http.createServer((req, res) => {
 
   const opts = { headers: { 'User-Agent': 'OVERHEAD/9.5 (+https://overhead.world)', 'Accept': 'application/json' }, timeout: 15000 };
   const upstreamReq = https.get(upstreamUrl, opts, (upstream) => {
+    // Mirror the Vercel function: don't cache a 420/429 throttle response as data.
+    const throttled = upstream.statusCode === 420 || upstream.statusCode === 429;
     res.writeHead(upstream.statusCode || 502, {
       'Content-Type': 'application/json',
-      'Cache-Control': ALLOW[upstreamUrl.hostname],
+      'Cache-Control': throttled ? 'no-store' : ALLOW[upstreamUrl.hostname],
     });
     upstream.pipe(res);
   });
