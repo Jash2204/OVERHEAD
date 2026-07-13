@@ -3268,9 +3268,83 @@ cv.addEventListener('mousemove',e=>{
   }
 });
 cv.addEventListener('click',e=>{
-  if(hovered){selected=hovered;showInfo(hovered);}
+  if(hovered){selected=hovered;enrichRoute(hovered);showInfo(hovered);}
   else{selected=null;closeInfo();}
 });
+
+// ── AIRLINE + ROUTE ENRICHMENT ──────────────────────────────────────────
+// adsb.lol's position feed carries no airline or route, so we derive them on
+// demand when a plane is selected:
+//   • Airline — from the callsign's 3-letter ICAO prefix via the offline table
+//     below (falls back to the raw code for carriers not listed).
+//   • Route   — one lookup to adsb.lol's static route dataset. Same operator as
+//     the live feed (no new third party), CORS-enabled, and it carries only the
+//     public callsign — never the user's location. The path is deterministic:
+//     /routes/<first-2-of-callsign>/<callsign>.json  (e.g. ACA864 → AC/ACA864).
+const AIRLINES = {
+  ACA:'Air Canada', WJA:'WestJet', TSC:'Air Transat', POE:'Porter Airlines',
+  AAL:'American Airlines', UAL:'United Airlines', DAL:'Delta Air Lines',
+  SWA:'Southwest', JBU:'JetBlue', ASA:'Alaska Airlines', NKS:'Spirit',
+  FFT:'Frontier', HAL:'Hawaiian', AAY:'Allegiant', SKW:'SkyWest',
+  RPA:'Republic Airways', ENY:'Envoy Air', EDV:'Endeavor Air', JIA:'PSA Airlines',
+  AMX:'Aeroméxico', VOI:'Volaris', VIV:'Viva Aerobus',
+  AVA:'Avianca', CMP:'Copa Airlines', LAN:'LATAM', TAM:'LATAM Brasil',
+  GLO:'GOL', AZU:'Azul', ARG:'Aerolíneas Argentinas',
+  BAW:'British Airways', VIR:'Virgin Atlantic', EZY:'easyJet', RYR:'Ryanair',
+  EIN:'Aer Lingus', TOM:'TUI Airways', EXS:'Jet2', DLH:'Lufthansa',
+  AFR:'Air France', KLM:'KLM', IBE:'Iberia', VLG:'Vueling', SWR:'SWISS',
+  AUA:'Austrian', BEL:'Brussels Airlines', TAP:'TAP Air Portugal',
+  SAS:'SAS', FIN:'Finnair', NAX:'Norwegian', LOT:'LOT Polish', CSA:'Czech Airlines',
+  AEE:'Aegean', THY:'Turkish Airlines', AZA:'Alitalia', ITY:'ITA Airways',
+  WZZ:'Wizz Air', TRA:'Transavia', EWG:'Eurowings', CFG:'Condor',
+  PGT:'Pegasus', AFL:'Aeroflot', SBI:'S7 Airlines', ICE:'Icelandair',
+  UAE:'Emirates', QTR:'Qatar Airways', ETD:'Etihad', FDB:'flydubai',
+  SVA:'Saudia', MSR:'EgyptAir', RJA:'Royal Jordanian', ELY:'El Al',
+  KAC:'Kuwait Airways', GFA:'Gulf Air', OMA:'Oman Air', KZR:'Air Astana',
+  THA:'Thai Airways', SIA:'Singapore Airlines', CPA:'Cathay Pacific',
+  QFA:'Qantas', ANZ:'Air New Zealand', JAL:'Japan Airlines', ANA:'All Nippon',
+  KAL:'Korean Air', AAR:'Asiana', CCA:'Air China', CES:'China Eastern',
+  CSN:'China Southern', CHH:'Hainan Airlines', CXA:'Xiamen Air', CAL:'China Airlines',
+  EVA:'EVA Air', HVN:'Vietnam Airlines', AIC:'Air India', IGO:'IndiGo',
+  SEJ:'SpiceJet', PAL:'Philippine Airlines', GIA:'Garuda Indonesia',
+  MAS:'Malaysia Airlines', AXM:'AirAsia', CEB:'Cebu Pacific', TGW:'Scoot',
+  JST:'Jetstar', VOZ:'Virgin Australia', ETH:'Ethiopian', KQA:'Kenya Airways',
+  SAA:'South African', RAM:'Royal Air Maroc',
+  FDX:'FedEx', UPS:'UPS', GTI:'Atlas Air', GEC:'Lufthansa Cargo',
+  CLX:'Cargolux', CKS:'Kalitta Air',
+};
+const routeCache = new Map();   // callsign -> {origin,dest} | null (known miss)
+function applyRoute(obj, route){
+  if(route){ obj.origin=route.origin; obj.dest=route.dest; }
+}
+function enrichRoute(obj){
+  if(!obj || !obj.callsign) return;
+  const cs=obj.callsign.trim().toUpperCase();
+  // ICAO airline callsigns are 3 letters + flight number; skip GA/registrations.
+  const m=/^([A-Z]{3})(\d.*)$/.exec(cs);
+  if(!m) return;
+  obj.airlineIcao=m[1];
+  obj.airlineName=AIRLINES[m[1]]||m[1];
+  if(obj.origin||obj.dest) return;               // already enriched
+  if(routeCache.has(cs)){ applyRoute(obj, routeCache.get(cs)); return; }
+  obj.routePending=true;
+  const url=`https://vrs-standing-data.adsb.lol/routes/${cs.slice(0,2)}/${encodeURIComponent(cs)}.json`;
+  fetch(url,{signal:AbortSignal.timeout(8000)})
+    .then(r=>r.ok?r.json():null)
+    .then(j=>{
+      let route=null;
+      const codes=j&&j._airport_codes_iata;
+      if(codes && codes.indexOf('-')>0){
+        const parts=codes.split('-');
+        route={origin:parts[0], dest:parts[parts.length-1]};
+      }
+      routeCache.set(cs, route);
+      obj.routePending=false;
+      applyRoute(obj, route);
+      if(selected===obj) showInfo(obj);          // refresh the open panel
+    })
+    .catch(()=>{ obj.routePending=false; routeCache.set(cs,null); if(selected===obj) showInfo(obj); });
+}
 
 function showInfo(obj) {
   const panel=document.getElementById('info');
@@ -3281,8 +3355,11 @@ function showInfo(obj) {
     title.textContent='✈ '+obj.callsign;
     body.innerHTML=`
       <div class="irow"><span>REGISTRATION</span><b>${obj.country}</b></div>
+      ${obj.airlineName?`<div class="irow"><span>AIRLINE</span><b>${obj.airlineName}</b></div>`:''}
       ${obj.acType?`<div class="irow"><span>AIRCRAFT</span><b>${obj.acType}</b></div>`:''}
-      ${(obj.origin||obj.dest)?`<div class="irow"><span>ROUTE</span><b>${obj.origin||'?'} → ${obj.dest||'?'}</b></div>`:''}
+      ${(obj.origin||obj.dest)
+         ? `<div class="irow"><span>ROUTE</span><b>${obj.origin||'?'} → ${obj.dest||'?'}</b></div>`
+         : (obj.routePending?`<div class="irow"><span>ROUTE</span><b>…</b></div>`:'')}
       <div class="irow"><span>ALTITUDE</span><b>${Math.round(obj.alt/0.3048).toLocaleString()} ft</b></div>
       <div class="irow"><span>SPEED</span><b>${Math.round(obj.vel*1.944)} kts</b></div>
       <div class="irow"><span>HEADING</span><b>${Math.round(obj.track)}°</b></div>
