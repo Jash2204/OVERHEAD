@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>OVERHEAD — Live Sky Projector</title>
 <meta name="description" content="OVERHEAD is a live sky projector for any location on Earth. Travel anywhere to see the stars, planets, Moon, live aircraft, the ISS and satellites passing overhead in real time — highly customizable and built for full-screen projection.">
+<!-- Inline favicon (amber plane on night sky) — stops the /favicon.ico 404 every visit; no extra file/request. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23060d18'/%3E%3Ccircle cx='7' cy='7' r='1' fill='%238fb8ff'/%3E%3Ccircle cx='25' cy='9' r='1.2' fill='%23cfe2ff'/%3E%3Ccircle cx='11' cy='25' r='1' fill='%238fb8ff'/%3E%3Cpath d='M16 5l2 8 9 5-9 1-1 6-2 2-2-2-1-6-9-1 9-5z' fill='%23ffb347'/%3E%3C/svg%3E">
 <link rel="canonical" href="https://overhead.world/">
 
 <!-- Open Graph (Facebook, iMessage, Discord, Slack, LinkedIn) -->
@@ -1712,11 +1714,14 @@ function drawSatellites(now){
 function proxiedCandidates(upstreamUrl){
   const enc=encodeURIComponent(upstreamUrl);
   const origin=(location.protocol==='file:')?'':location.origin;
-  return [
-    `${origin}/api/proxy?url=${enc}`,      // 1. Vercel proxy (primary live, edge-cached)
-    `http://localhost:3001/?url=${enc}`,   // 2. local dev proxy
-    upstreamUrl,                           // 3. direct fallback (upstream sends CORS)
-  ];
+  // Only offer the local-dev proxy when actually running locally. Browsers block
+  // public sites from reaching loopback (Private Network Access), so on the live
+  // site this hop could never work — it just spammed the console for visitors.
+  const isLocal=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:');
+  const out=[`${origin}/api/proxy?url=${enc}`]; // 1. Vercel proxy (primary live, edge-cached)
+  if(isLocal) out.push(`http://localhost:3001/?url=${enc}`); // 2. local dev proxy — local only
+  out.push(upstreamUrl);                        // 3. direct fallback (upstream sends CORS)
+  return out;
 }
 async function fetchAllowlistedJSON(upstreamUrl, timeoutMs){
   for(const u of proxiedCandidates(upstreamUrl)){
