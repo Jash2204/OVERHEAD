@@ -580,9 +580,9 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
   </div>
   <div class="ctrl-sep" style="background:rgba(0,212,255,0.12)"></div>
   <div class="ctrl-group">
-    <button class="btn" id="b-output" style="--btn-col:var(--green)" onclick="openSkyOutput()">
+    <button class="btn" id="b-output" style="--btn-col:var(--green)" onclick="openCeilingMode()">
       <span class="btn-icon">⛶</span>
-      <span class="btn-label">OPEN SKY OUTPUT<span class="btn-sub">Clean window for projector</span></span>
+      <span class="btn-label">CEILING MODE<span class="btn-sub">Clean window for projector</span></span>
     </button>
   </div>
   <div class="ctrl-sep" style="background:rgba(0,212,255,0.12)"></div>
@@ -759,6 +759,15 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
     <button class="btn" id="b-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
       <span class="btn-icon">▣</span>
       <span class="btn-label"><span id="render-lt">RENDER: AUTO</span><span class="btn-sub" id="render-sub">native · — fps</span></span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <button class="btn" id="b-flipv" style="--btn-col:var(--green)" onclick="toggleCeilFlip('v')">
+      <span class="btn-icon">⇕</span>
+      <span class="btn-label">MIRROR ↕<span class="btn-sub" id="flipv-sub">Swaps north &amp; south on the ceiling</span></span>
+    </button>
+    <button class="btn" id="b-fliph" style="--btn-col:var(--green)" onclick="toggleCeilFlip('h')">
+      <span class="btn-icon">⇔</span>
+      <span class="btn-label">MIRROR ↔<span class="btn-sub" id="fliph-sub">Swaps east &amp; west on the ceiling</span></span>
     </button>
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-refresh" onclick="forceRefresh()">
@@ -1103,6 +1112,17 @@ let domeFov = 180;       // dome FOV: angular diameter mapped across the dome ci
 let moonObj = null;
 let mwStars = []; // extra star sprinkle along the Milky Way band
 let projectorMode = false;
+// CEILING ORIENTATION (output window only). Projecting onto a ceiling needs the
+// image mirrored, because looking *up* reverses east/west: lying on your back
+// with your head north, your right hand points west, so the true overhead view
+// is N-top/E-left — whereas the screen draws the map-handed N-top/E-right. On a
+// monitor that's the familiar convention; on a ceiling it must be un-mirrored.
+// Which axis depends on how the projector sits (head vs foot of bed, tilt
+// direction), so both are exposed — same as a real projector's image-orientation
+// menu. Default: vertical mirror, correct for the common "projector by your head"
+// setup (fixes N↔S while leaving E↔W alone).
+let ceilFlipH = false;
+let ceilFlipV = true;
 let orientationHeading = 0; // degrees; kept at 0 (the device-orient feature was removed)
 
 let planeMap = {};
@@ -2177,6 +2197,7 @@ function collectState() {
     BORTLE, depth3D, palette,
     domeScale, projMode, fovDeg, domeFov,
     orientationHeading,
+    ceilFlipH, ceilFlipV,
     // time offset lets the output match any time-scrubbing in future; 0 = live now
     tOffset: 0,
   };
@@ -2199,6 +2220,12 @@ function applyState(s) {
   if(s.palette && PALETTES[s.palette]) palette = s.palette;
   if(typeof s.depth3D==='boolean') depth3D = s.depth3D;
   if(typeof s.skyTimeOffsetMs==='number') skyTimeOffsetMs = s.skyTimeOffsetMs;
+  // Ceiling mirroring: re-apply the corner-pin so the change shows immediately.
+  if(typeof s.ceilFlipH==='boolean' || typeof s.ceilFlipV==='boolean'){
+    if(typeof s.ceilFlipH==='boolean') ceilFlipH = s.ceilFlipH;
+    if(typeof s.ceilFlipV==='boolean') ceilFlipV = s.ceilFlipV;
+    if(IS_OUTPUT) applyCornerPin();
+  }
   // Recompute positions for new location/orientation
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
   // Re-anchor aircraft only if this sync actually changed the projection (else we'd
@@ -2220,7 +2247,7 @@ function pushState() {
 }
 
 // Open the clean sky output window
-function openSkyOutput() {
+function openCeilingMode() {
   // If already open, just focus it
   if(outWin && !outWin.closed) { outWin.focus(); return; }
 
@@ -2233,7 +2260,7 @@ function openSkyOutput() {
     'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
 
   if(!outWin) {
-    alert('Popup blocked — please allow popups for OVERHEAD, then click "Open Sky Output" again.');
+    alert('Popup blocked — please allow popups for OVERHEAD, then click "Ceiling Mode" again.');
     return;
   }
 
@@ -2340,14 +2367,27 @@ function loadCorners(){
   try{ const s=localStorage.getItem('overhead-corners'); if(s) return JSON.parse(s); }catch(e){}
   return null;
 }
+// Ceiling mirroring is folded into the corner-pin homography by remapping which
+// source corner goes to which physical corner. That keeps ONE transform on the
+// canvas (no stacked CSS transforms fighting the calibration) and leaves the
+// projected quad itself identical — only the content inside it is mirrored.
+// Corner order is [tl,tr,br,bl].
+function orientedCorners(cn){
+  if(!IS_OUTPUT) return cn;                       // control window is never mirrored
+  if(ceilFlipH && ceilFlipV) return [cn[2],cn[3],cn[0],cn[1]];  // both = 180° rotation
+  if(ceilFlipH)              return [cn[1],cn[0],cn[3],cn[2]];  // mirror left↔right
+  if(ceilFlipV)              return [cn[3],cn[2],cn[1],cn[0]];  // mirror top↔bottom
+  return cn;
+}
 function applyCornerPin(){
   if(!calCorners) return;
-  const t=homography(window.innerWidth, window.innerHeight, calCorners);
+  const t=homography(window.innerWidth, window.innerHeight, orientedCorners(calCorners));
   cv.style.transformOrigin='0 0';
   cv.style.transform=t;
-  // The green setup mesh warps WITH the corners — what you see is what projects
+  // The green setup mesh warps with the PHYSICAL corners (unmirrored) — it's an
+  // alignment aid for the real ceiling quad, not sky content.
   const g=document.getElementById('cal-grid');
-  if(g){ g.style.transformOrigin='0 0'; g.style.transform=t; }
+  if(g){ g.style.transformOrigin='0 0'; g.style.transform=homography(window.innerWidth, window.innerHeight, calCorners); }
 }
 function positionHandles(){
   calCorners.forEach((pt,i)=>{
@@ -2454,6 +2494,27 @@ function toggleProjector() {
   btn.classList.toggle('on');
   btn.querySelector('.btn-icon').textContent=projectorMode?'⬜':'⬛';
   pushState();
+}
+// Ceiling mirroring — see the ceilFlipH/ceilFlipV notes above. Applies to the
+// Ceiling Mode window only; the control window stays unmirrored so it still
+// reads like a normal map-handed sky chart.
+function toggleCeilFlip(axis){
+  if(axis==='h') ceilFlipH=!ceilFlipH; else ceilFlipV=!ceilFlipV;
+  try{ localStorage.setItem('overhead-ceilflip', JSON.stringify({h:ceilFlipH,v:ceilFlipV})); }catch(e){}
+  syncCeilFlipUI();
+  pushState();
+}
+function syncCeilFlipUI(){
+  const bh=document.getElementById('b-fliph'), bv=document.getElementById('b-flipv');
+  if(bh) bh.classList.toggle('on', ceilFlipH);
+  if(bv) bv.classList.toggle('on', ceilFlipV);
+}
+function loadCeilFlip(){
+  try{
+    const s=localStorage.getItem('overhead-ceilflip');
+    if(s){ const j=JSON.parse(s); if(typeof j.h==='boolean') ceilFlipH=j.h; if(typeof j.v==='boolean') ceilFlipV=j.v; }
+  }catch(e){}
+  syncCeilFlipUI();
 }
 function forceRefresh() {
   lastFetchTime=0; fetchPlanes(); fetchISS();
@@ -3648,6 +3709,7 @@ function ohBoot(){
 }
 
 async function init() {
+  loadCeilFlip();   // ceiling mirroring (both windows: output applies it, control shows it)
   // ── OUTPUT MODE: minimal boot — no loader, no UI, sky only ──
   if(IS_OUTPUT) {
     initOutputMode();
