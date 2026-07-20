@@ -1123,6 +1123,26 @@ let projectorMode = false;
 // setup (fixes N↔S while leaving E↔W alone).
 let ceilFlipH = false;
 let ceilFlipV = true;
+// The mirror above flips the whole canvas, which would flip every label with it.
+// Counter-flip each text draw about its own anchor: mirrored twice, the glyphs
+// come out upright while the sky geometry stays mirrored. Alignment/baseline are
+// preserved because the flip is about the anchor itself. Patching the one main
+// context covers all label + HUD text (the offscreen star/Milky-Way layers draw
+// no text), and only in the Ceiling Mode window.
+if(IS_OUTPUT){
+  ['fillText','strokeText'].forEach(fn=>{
+    const orig = ctx[fn].bind(ctx);
+    ctx[fn] = function(t,x,y,mw){
+      if(!ceilFlipH && !ceilFlipV){ return mw===undefined?orig(t,x,y):orig(t,x,y,mw); }
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.scale(ceilFlipH?-1:1, ceilFlipV?-1:1);
+      ctx.translate(-x,-y);
+      if(mw===undefined) orig(t,x,y); else orig(t,x,y,mw);
+      ctx.restore();
+    };
+  });
+}
 let orientationHeading = 0; // degrees; kept at 0 (the device-orient feature was removed)
 
 let planeMap = {};
