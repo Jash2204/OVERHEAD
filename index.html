@@ -458,6 +458,36 @@ body.projector #oh-countdown{display:none}
 .rec-rv-disc{border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5)}
 .rec-rv-disc:hover{border-color:var(--red);color:var(--red)}
 body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-panel{display:none!important}
+/* ══ CEILING SETTINGS (output window only) ════════════════════════ */
+/* Lives only in the Ceiling Mode window; the main page never shows it. */
+/* Anchored by top/right rather than a centring transform: the shared slideIn
+   keyframes animate `transform`, which would override translateY(-50%) and push
+   the panel off the bottom of the screen. */
+#ceil-panel{position:fixed;right:22px;top:20px;
+  z-index:70;width:290px;max-width:calc(100vw - 36px);background:var(--panel);
+  border:1px solid rgba(255,255,255,0.10);border-top:2px solid var(--amber);
+  backdrop-filter:blur(14px);display:none;font-family:'Share Tech Mono',monospace;
+  max-height:calc(100vh - 40px);overflow-y:auto}
+#ceil-panel.show{display:block;animation:slideIn 0.2s ease}
+#ceil-panel .ctrl-sep{height:1px;background:rgba(255,255,255,0.05)}
+#ceil-panel .btn{width:100%;min-width:0}
+/* The output window hides the cursor; bring it back while the panel is open. */
+body.output-only.ceil-ui, body.output-only.ceil-ui *{cursor:default!important}
+body.output-only.ceil-ui #ceil-panel button,
+body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
+#ceil-compass{padding:11px 13px 12px}
+#ceil-compass .cc-top{display:flex;justify-content:space-between;align-items:baseline}
+#ceil-compass .cc-ttl{font-size:10px;letter-spacing:0.16em;color:rgba(255,255,255,0.82)}
+#ceil-compass .cc-val{font-size:13px;color:var(--amber)}
+#ceil-compass .cc-sub{font-size:8.5px;letter-spacing:0.08em;color:rgba(255,255,255,0.34);margin:3px 0 8px}
+#cc-slider{width:100%;accent-color:var(--amber);background:transparent}
+#ceil-compass .cc-btns{display:flex;gap:4px;margin-top:8px}
+#ceil-compass .cc-btns button{flex:1;padding:4px 0;font-family:'Share Tech Mono',monospace;
+  font-size:8.5px;letter-spacing:0.06em;color:rgba(255,255,255,0.62);
+  background:transparent;border:1px solid rgba(255,255,255,0.14);transition:all 0.15s}
+#ceil-compass .cc-btns button:hover{border-color:var(--amber);color:var(--amber)}
+#ceil-hint{padding:7px 13px 9px;font-size:8px;letter-spacing:0.14em;
+  color:rgba(255,255,255,0.28);border-top:1px solid rgba(255,255,255,0.05)}
 /* ══ v8 ZENYTH — location ═════════════════════════════════════════ */
 #zen-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:60;width:312px;max-width:calc(100vw - 36px);background:var(--panel);
@@ -571,12 +601,8 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
       <span class="btn-label">STYLE<span class="btn-sub">Realism &middot; darkness &middot; labels</span></span>
       <span class="grp-caret">&#8250;</span>
     </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn grp-btn" id="g-proj" style="--btn-col:var(--amber)" onclick="grpOpen('proj')">
-      <span class="btn-icon">&#11035;</span>
-      <span class="btn-label">PROJECTOR<span class="btn-sub">Mode &middot; render &middot; refresh</span></span>
-      <span class="grp-caret">&#8250;</span>
-    </button>
+    <!-- PROJECTOR settings now live in the Ceiling Mode window, so they can be
+         tuned against the real ceiling without altering this exploring view. -->
   </div>
   <div class="ctrl-sep" style="background:rgba(0,212,255,0.12)"></div>
   <div class="ctrl-group">
@@ -748,35 +774,6 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
     </button>
   </div>
 </div>
-<div id="grp-proj" class="grp-panel" style="border-top-color:var(--amber)">
-  <div class="rec-hd" style="color:var(--amber)">PROJECTOR <span onclick="grpClose('proj')">&#10005;</span></div>
-  <div class="grp-list">
-    <button class="btn" id="b-proj" style="--btn-col:var(--amber)" onclick="toggleProjector()">
-      <span class="btn-icon">⬛</span>
-      <span class="btn-label">PROJECTOR MODE<span class="btn-sub">Pure black + large text</span></span>
-    </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn" id="b-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
-      <span class="btn-icon">▣</span>
-      <span class="btn-label"><span id="render-lt">RENDER: AUTO</span><span class="btn-sub" id="render-sub">native · — fps</span></span>
-    </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn" id="b-flipv" style="--btn-col:var(--green)" onclick="toggleCeilFlip('v')">
-      <span class="btn-icon">⇕</span>
-      <span class="btn-label">MIRROR ↕<span class="btn-sub" id="flipv-sub">Swaps north &amp; south on the ceiling</span></span>
-    </button>
-    <button class="btn" id="b-fliph" style="--btn-col:var(--green)" onclick="toggleCeilFlip('h')">
-      <span class="btn-icon">⇔</span>
-      <span class="btn-label">MIRROR ↔<span class="btn-sub" id="fliph-sub">Swaps east &amp; west on the ceiling</span></span>
-    </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn" id="b-refresh" onclick="forceRefresh()">
-      <span class="btn-icon">↺</span>
-      <span class="btn-label">REFRESH DATA<span class="btn-sub">Force fetch now</span></span>
-    </button>
-  </div>
-</div>
-
 
 <!-- v7.5 TIMELAPSE — settings popover -->
 <div id="rec-panel">
@@ -943,6 +940,59 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
   <div id="cal-msg">DRAG THE GREEN CORNERS TO FIT YOUR CEILING — DATA LOADS IN THE BACKGROUND<br>R = RESET CORNERS · C = RE-ADJUST ANY TIME</div>
 </div>
 
+<!-- CEILING SETTINGS (output window only) — appears once the corners are set.
+     Everything here is local to this window; none of it touches the main page. -->
+<div id="ceil-panel">
+  <div class="rec-hd" style="color:var(--amber)">PROJECTOR <span onclick="ceilPanelClose()">&#10005;</span></div>
+  <div class="grp-list">
+    <button class="btn" id="c-proj" style="--btn-col:var(--amber)" onclick="ceilToggleProjMode()">
+      <span class="btn-icon">⬜</span>
+      <span class="btn-label">PROJECTOR MODE<span class="btn-sub">Pure black &middot; large text</span></span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <button class="btn" id="c-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
+      <span class="btn-icon">▣</span>
+      <span class="btn-label"><span id="c-render-lt">RENDER: AUTO</span><span class="btn-sub" id="c-render-sub">native &middot; — fps</span></span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <button class="btn" id="c-flipv" style="--btn-col:var(--green)" onclick="toggleCeilFlip('v')">
+      <span class="btn-icon">⇕</span>
+      <span class="btn-label">MIRROR ↕<span class="btn-sub">Swaps north &amp; south on the ceiling</span></span>
+    </button>
+    <button class="btn" id="c-fliph" style="--btn-col:var(--green)" onclick="toggleCeilFlip('h')">
+      <span class="btn-icon">⇔</span>
+      <span class="btn-label">MIRROR ↔<span class="btn-sub">Swaps east &amp; west on the ceiling</span></span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <div id="ceil-compass">
+      <div class="cc-top">
+        <span class="cc-ttl">COMPASS</span>
+        <span class="cc-val" id="cc-val">0°</span>
+      </div>
+      <div class="cc-sub">Turn the sky to match which way the bed faces</div>
+      <input type="range" id="cc-slider" min="0" max="359" step="1" value="0"
+             oninput="setCeilRot(this.value)">
+      <div class="cc-btns">
+        <button onclick="nudgeCeilRot(-15)">−15°</button>
+        <button onclick="nudgeCeilRot(-1)">−1°</button>
+        <button onclick="setCeilRot(0)">RESET</button>
+        <button onclick="nudgeCeilRot(1)">+1°</button>
+        <button onclick="nudgeCeilRot(15)">+15°</button>
+      </div>
+    </div>
+    <div class="ctrl-sep"></div>
+    <button class="btn" onclick="ceilRecalibrate()">
+      <span class="btn-icon">⊹</span>
+      <span class="btn-label">RE-CALIBRATE<span class="btn-sub">Drag the four corners again &middot; C</span></span>
+    </button>
+    <button class="btn" onclick="forceRefresh()">
+      <span class="btn-icon">↺</span>
+      <span class="btn-label">REFRESH DATA<span class="btn-sub">Force fetch now</span></span>
+    </button>
+  </div>
+  <div id="ceil-hint">P = HIDE / SHOW THIS PANEL</div>
+</div>
+
 <!-- BOTTOM BAR -->
 <div id="hud-bot">
   <div class="legend">
@@ -1040,16 +1090,16 @@ function cycleRenderScale(){
   setRenderMode(RENDER_ORDER[(i+1) % RENDER_ORDER.length]);
 }
 function updateRenderBtn(){
-  const lt = document.getElementById('render-lt');
-  const b  = document.getElementById('b-render');
+  // Render control lives in the Ceiling Mode panel now.
+  const lt = document.getElementById('c-render-lt');
+  const b  = document.getElementById('c-render');
   if(lt) lt.textContent = 'RENDER: ' + (RENDER_LABEL[RENDER_MODE] || 'AUTO');
   if(b)  b.classList.toggle('on', RENDER_MODE !== 'auto');
 }
 let __fpsCount = 0, __fps = 0;
 setInterval(function(){
   __fps = __fpsCount; __fpsCount = 0;
-  if(IS_OUTPUT) return;
-  const sub = document.getElementById('render-sub');
+  const sub = document.getElementById('c-render-sub');
   if(sub) sub.textContent = cv.width + '×' + cv.height + ' · ' + __fps + ' fps';
 }, 1000);
 
@@ -1121,8 +1171,12 @@ let projectorMode = false;
 // direction), so both are exposed — same as a real projector's image-orientation
 // menu. Default: vertical mirror, correct for the common "projector by your head"
 // setup (fixes N↔S while leaving E↔W alone).
+// These are CEILING-LOCAL: owned by the Ceiling Mode window, never sent in
+// collectState and never overwritten by an incoming sync — so tinkering with the
+// projection can't disturb the main exploring page.
 let ceilFlipH = false;
 let ceilFlipV = true;
+let ceilRot   = 0;   // compass rotation, degrees clockwise; turns the sky to match how the bed/room faces
 // The mirror above flips the whole canvas, which would flip every label with it.
 // Counter-flip each text draw about its own anchor: mirrored twice, the glyphs
 // come out upright while the sky geometry stays mirrored. Alignment/baseline are
@@ -1200,7 +1254,10 @@ function elevAtScreen(x, y) {
 }
 
 function altAzToScreen(altDeg, azRad) {
-  const adjAz = azRad - (orientationHeading * Math.PI/180);
+  // ceilRot is the Ceiling Mode compass (0 everywhere else), rotating the whole
+  // sky in azimuth. Applied here rather than as a canvas transform so the sky
+  // turns while labels stay upright.
+  const adjAz = azRad - ((orientationHeading + ceilRot) * Math.PI/180);
   if(projMode==='dome'){
     // Azimuthal equidistant: zenith centre, horizon on a circle. domeFov is the
     // angular diameter that fills the circle — zenith angle (domeFov/2) lands on
@@ -2217,7 +2274,8 @@ function collectState() {
     BORTLE, depth3D, palette,
     domeScale, projMode, fovDeg, domeFov,
     orientationHeading,
-    ceilFlipH, ceilFlipV,
+    // NOTE: ceilFlipH/ceilFlipV/ceilRot are deliberately NOT synced — the Ceiling
+    // Mode window owns them, so projector tweaks never touch the main page.
     // time offset lets the output match any time-scrubbing in future; 0 = live now
     tOffset: 0,
   };
@@ -2240,12 +2298,8 @@ function applyState(s) {
   if(s.palette && PALETTES[s.palette]) palette = s.palette;
   if(typeof s.depth3D==='boolean') depth3D = s.depth3D;
   if(typeof s.skyTimeOffsetMs==='number') skyTimeOffsetMs = s.skyTimeOffsetMs;
-  // Ceiling mirroring: re-apply the corner-pin so the change shows immediately.
-  if(typeof s.ceilFlipH==='boolean' || typeof s.ceilFlipV==='boolean'){
-    if(typeof s.ceilFlipH==='boolean') ceilFlipH = s.ceilFlipH;
-    if(typeof s.ceilFlipV==='boolean') ceilFlipV = s.ceilFlipV;
-    if(IS_OUTPUT) applyCornerPin();
-  }
+  // (Ceiling mirror/compass are intentionally absent here — they're owned locally
+  // by the Ceiling Mode window and must survive every state push from the control.)
   // Recompute positions for new location/orientation
   buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
   // Re-anchor aircraft only if this sync actually changed the projection (else we'd
@@ -2338,9 +2392,15 @@ function initOutputMode() {
   // Also announce to opener directly (file:// path)
   try { if(window.opener) window.opener.postMessage({type:'output-ready'}, '*'); } catch(e){}
 
+  // Clicks inside the ceiling panel are UI, not a fullscreen toggle.
+  const cp=document.getElementById('ceil-panel');
+  if(cp) cp.addEventListener('click', e=>e.stopPropagation());
+
   // Click anywhere → toggle fullscreen
   document.addEventListener('click', ()=>{
     if(calOpen) return; // don't toggle fullscreen while dragging calibration handles
+    // (Clicks inside the ceiling panel never reach here — it stops propagation —
+    //  so the sky still toggles fullscreen while the panel is open.)
     if(!document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(()=>{});
     } else {
@@ -2358,6 +2418,7 @@ function initOutputMode() {
   document.addEventListener('keydown', e=>{
     if(e.key==='c'||e.key==='C') calOpen ? finishCalibration() : showCalibration();
     if((e.key==='r'||e.key==='R') && calOpen){ calCorners=defaultCorners(); positionHandles(); applyCornerPin(); }
+    if((e.key==='p'||e.key==='P') && !calOpen) ceilPanelToggle();
   });
 }
 
@@ -2417,6 +2478,7 @@ function positionHandles(){
 }
 function showCalibration(){
   calOpen = true;
+  ceilPanelClose();          // corners first, then the projection controls
   calCorners = loadCorners() || defaultCorners();
   // Rescue: clamp any saved corners into the current viewport so a handle
   // can never be stranded off-screen (old window size, different projector).
@@ -2456,6 +2518,8 @@ function finishCalibration(){
   document.body.classList.add('calibrated');
   document.body.style.cursor='none';
   try{ localStorage.setItem('overhead-corners', JSON.stringify(calCorners)); }catch(e){}
+  // Corners are set — now offer the projection controls (mirror + compass).
+  if(IS_OUTPUT) ceilPanelOpen();
 }
 
 // OPTIONAL ENHANCEMENT: auto-place on extended screen (Window Management API)
@@ -2481,7 +2545,7 @@ async function tryAutoPlaceOnProjector() {
 // TOGGLES
 // ═══════════════════════════════════════════════════════
 // ── v9 grouped layer menus ───────────────────────────────────────
-const GRP_IDS=['sky','traffic','view','style','proj'];
+const GRP_IDS=['sky','traffic','view','style'];   // 'proj' moved into the Ceiling Mode window
 // Members that drive each group button's "active" dot.
 const GRP_MEMBERS={sky:['stars','cons','planets','meteors','milkyway','moon'],
                    traffic:['planes','iss','sats'],
@@ -2507,35 +2571,79 @@ function toggle(key,btn) {
   syncGroupBadges();
   pushState(); // keep output in sync
 }
-function toggleProjector() {
-  projectorMode=!projectorMode;
-  document.body.classList.toggle('projector');
-  const btn=document.getElementById('b-proj');
-  btn.classList.toggle('on');
-  btn.querySelector('.btn-icon').textContent=projectorMode?'⬜':'⬛';
-  pushState();
+// (toggleProjector removed — projector rendering is now toggled from the Ceiling
+//  Mode panel via ceilToggleProjMode, so it can't alter the main exploring page.)
+// ═══════════════════════════════════════════════════════
+// CEILING SETTINGS (output window only)
+// ═══════════════════════════════════════════════════════
+// The Ceiling Mode window owns its projection settings outright: mirroring and
+// compass live here, are saved under their own key, and are never pushed to (or
+// pulled from) the main page. So the landing page stays an exploring view while
+// this window is tuned to the room.
+function saveCeilSettings(){
+  try{ localStorage.setItem('overhead-ceiling', JSON.stringify({h:ceilFlipH,v:ceilFlipV,rot:ceilRot})); }catch(e){}
 }
-// Ceiling mirroring — see the ceilFlipH/ceilFlipV notes above. Applies to the
-// Ceiling Mode window only; the control window stays unmirrored so it still
-// reads like a normal map-handed sky chart.
+function loadCeilSettings(){
+  try{
+    const s=localStorage.getItem('overhead-ceiling');
+    if(s){
+      const j=JSON.parse(s);
+      if(typeof j.h==='boolean') ceilFlipH=j.h;
+      if(typeof j.v==='boolean') ceilFlipV=j.v;
+      if(typeof j.rot==='number') ceilRot=((j.rot%360)+360)%360;
+    }
+  }catch(e){}
+  syncCeilUI();
+}
 function toggleCeilFlip(axis){
   if(axis==='h') ceilFlipH=!ceilFlipH; else ceilFlipV=!ceilFlipV;
-  try{ localStorage.setItem('overhead-ceilflip', JSON.stringify({h:ceilFlipH,v:ceilFlipV})); }catch(e){}
-  syncCeilFlipUI();
-  pushState();
+  saveCeilSettings();
+  syncCeilUI();
+  if(IS_OUTPUT) applyCornerPin();
 }
-function syncCeilFlipUI(){
-  const bh=document.getElementById('b-fliph'), bv=document.getElementById('b-flipv');
+// Compass: rotating in azimuth means every position must be recomputed, so
+// rebuild the sky layers and re-anchor traffic (same work a location change does).
+function setCeilRot(deg){
+  ceilRot = ((Math.round(+deg)%360)+360)%360;
+  saveCeilSettings();
+  syncCeilUI();
+  buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  if(typeof reprojectTraffic==='function') reprojectTraffic();
+}
+function nudgeCeilRot(d){ setCeilRot(ceilRot + d); }
+function syncCeilUI(){
+  const bh=document.getElementById('c-fliph'), bv=document.getElementById('c-flipv');
   if(bh) bh.classList.toggle('on', ceilFlipH);
   if(bv) bv.classList.toggle('on', ceilFlipV);
+  const sl=document.getElementById('cc-slider'); if(sl && +sl.value!==ceilRot) sl.value=ceilRot;
+  const vl=document.getElementById('cc-val'); if(vl) vl.textContent=ceilRot+'°';
+  const pb=document.getElementById('c-proj');
+  if(pb){ pb.classList.toggle('on', projectorMode); pb.querySelector('.btn-icon').textContent=projectorMode?'⬜':'⬛'; }
 }
-function loadCeilFlip(){
-  try{
-    const s=localStorage.getItem('overhead-ceilflip');
-    if(s){ const j=JSON.parse(s); if(typeof j.h==='boolean') ceilFlipH=j.h; if(typeof j.v==='boolean') ceilFlipV=j.v; }
-  }catch(e){}
-  syncCeilFlipUI();
+function ceilPanelOpen(){
+  const p=document.getElementById('ceil-panel');
+  if(!p) return;
+  p.classList.add('show');
+  document.body.classList.add('ceil-ui');
+  syncCeilUI();
 }
+function ceilPanelClose(){
+  const p=document.getElementById('ceil-panel');
+  if(p) p.classList.remove('show');
+  document.body.classList.remove('ceil-ui');
+}
+function ceilPanelToggle(){
+  const p=document.getElementById('ceil-panel');
+  if(!p) return;
+  p.classList.contains('show') ? ceilPanelClose() : ceilPanelOpen();
+}
+// Output mode forces projector rendering on; let the ceiling window turn it off.
+function ceilToggleProjMode(){
+  projectorMode=!projectorMode;
+  document.body.classList.toggle('projector', projectorMode);
+  syncCeilUI();
+}
+function ceilRecalibrate(){ ceilPanelClose(); showCalibration(); }
 function forceRefresh() {
   lastFetchTime=0; fetchPlanes(); fetchISS();
 }
@@ -3729,7 +3837,7 @@ function ohBoot(){
 }
 
 async function init() {
-  loadCeilFlip();   // ceiling mirroring (both windows: output applies it, control shows it)
+  loadCeilSettings();   // ceiling mirror + compass — owned by the Ceiling Mode window
   // ── OUTPUT MODE: minimal boot — no loader, no UI, sky only ──
   if(IS_OUTPUT) {
     initOutputMode();
