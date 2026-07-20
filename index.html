@@ -269,7 +269,7 @@ body.output-only::-webkit-scrollbar { display:none; }
 
 /* ══ v7.2 USHER — countdowns, tour, notifications ══════════════ */
 #oh-countdown{position:fixed;top:64px;left:14px;z-index:12;
-  width:218px;background:var(--panel);
+  width:246px;background:var(--panel);
   border:1px solid rgba(0,212,255,0.2);border-left:2px solid var(--accent);
   backdrop-filter:blur(12px);font-family:'Share Tech Mono',monospace;
   transition:transform .25s ease,opacity .25s ease}
@@ -291,6 +291,11 @@ body.output-only::-webkit-scrollbar { display:none; }
 .oh-row-v{font-size:10px;letter-spacing:0.04em;color:#fff;margin-top:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .oh-row-v .em{color:var(--accent)}
+/* The next-event row carries a site, coordinates and a UTC time, so it needs to
+   wrap — the default row style is single-line-with-ellipsis and would hide them. */
+#oh-event{white-space:normal;overflow:visible;text-overflow:clip}
+.oh-ev-sub{font-size:8.5px;line-height:1.35;letter-spacing:0.04em;
+  color:rgba(255,255,255,0.42);margin-top:1px;white-space:normal}
 .oh-cd-foot{padding:5px 11px 7px;font-size:6.5px;letter-spacing:0.18em;
   color:rgba(255,255,255,0.22);border-top:1px solid rgba(255,255,255,0.05)}
 body.projector #oh-countdown{display:none}
@@ -616,14 +621,10 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
   </div>
   <div class="ctrl-sep" style="background:rgba(0,212,255,0.12)"></div>
   <div class="ctrl-group">
-    <button class="btn" id="b-record" style="--btn-col:var(--red)" onclick="recToggle()">
-      <span class="btn-icon">&#9210;</span>
-      <span class="btn-label"><span id="rec-lt">RECORD SKY</span><span class="btn-sub" id="rec-sub">Time-lapse to Downloads</span></span>
-    </button>
-    <div class="ctrl-sep"></div>
+    <!-- Recording now lives inside the time-lapse panel, so this is one entry. -->
     <button class="btn" id="b-recset" style="--btn-col:#7fd4ff" onclick="recOpenSettings()">
       <span class="btn-icon">&#9881;</span>
-      <span class="btn-label">TIME-LAPSE SETTINGS<span class="btn-sub">Speed · size · quality</span></span>
+      <span class="btn-label">TIME-LAPSE<span class="btn-sub">Record &middot; speed &middot; size &middot; quality</span></span>
     </button>
   </div>
 </div>
@@ -675,11 +676,7 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
       <span class="btn-icon">▲</span>
       <span class="btn-label">AIRCRAFT SHAPES<span class="btn-sub">Type silhouettes vs. nav-lights</span></span>
     </button>
-    <div class="ctrl-sep"></div>
-    <button class="btn" id="b-routes" style="--btn-col:var(--amber)" onclick="toggle('routes',this)">
-      <span class="btn-icon">↗</span>
-      <span class="btn-label">FLIGHT PATHS<span class="btn-sub">Click a plane to show its arc</span></span>
-    </button>
+    <!-- FLIGHT PATHS toggle removed — clicking a plane always draws its arc. -->
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-acalert" style="--btn-col:var(--amber)" onclick="toggleAcAlert(this)">
       <span class="btn-icon">◎</span>
@@ -741,7 +738,7 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
   <div class="rec-hd" style="color:#e8eef8">STYLE <span onclick="grpClose('style')">&#10005;</span></div>
   <div class="grp-list">
     <div class="rec-field" style="padding:9px 12px 10px">
-      <label>SKY PALETTE</label>
+      <label>SKY PRESETS</label>
       <select id="sky-palette" onchange="setPalette(this.value)">
         <option value="realistic">Realistic</option>
         <option value="darksite">Excellent dark site</option>
@@ -829,6 +826,12 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 
   <div class="rec-readout" id="rec-readout">&mdash;</div>
   <div class="rec-note" id="rec-note"></div>
+  <!-- Record lives here now rather than as its own sidebar entry: you set the
+       speed/size/quality and start the capture in one place. -->
+  <button class="btn" id="b-record" style="--btn-col:var(--red);width:100%;margin-top:10px" onclick="recToggle()">
+    <span class="btn-icon">&#9210;</span>
+    <span class="btn-label"><span id="rec-lt">RECORD SKY</span><span class="btn-sub" id="rec-sub">Time-lapse to Downloads</span></span>
+  </button>
 </div>
 
 <!-- v7.5 TIMELAPSE — crash recovery -->
@@ -875,8 +878,8 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
     <button class="oh-icon-btn" id="oh-collapse" title="Hide" onclick="document.getElementById('oh-countdown').classList.toggle('collapsed')">&#8211;</button>
   </div>
   <div class="oh-cd-body">
-    <div class="oh-row"><span class="oh-row-ic" style="color:var(--green)">&#9678;</span>
-      <span class="oh-row-tx"><div class="oh-row-l">SPACE STATION</div><div class="oh-row-v" id="oh-iss">&mdash;</div></span></div>
+    <div class="oh-row"><span class="oh-row-ic" style="color:var(--green)">&#9673;</span>
+      <span class="oh-row-tx"><div class="oh-row-l">NEXT EVENT</div><div class="oh-row-v" id="oh-event">&mdash;</div></span></div>
     <div class="oh-row"><span class="oh-row-ic" style="color:var(--yellow)">&#9732;</span>
       <span class="oh-row-tx"><div class="oh-row-l">METEORS</div><div class="oh-row-v" id="oh-meteor">&mdash;</div></span></div>
     <div class="oh-row"><span class="oh-row-ic" style="color:var(--accent)">&#8756;</span>
@@ -1110,7 +1113,7 @@ let userLat = 51.5074, userLon = -0.1278, locationName = 'London, UK';
 let skyTimeOffsetMs = 0; // ZENYTH sky-clock (ms). 0 = live. Teleport presets set this to the
                          // destination's local solar midnight; own coords & GPS stay live.
                          // Single seam for a future time-of-day / daylight model.
-let SHOW = {stars:true,cons:true,planets:true,meteors:true,planes:true,iss:true,trails:true,labels:false,milkyway:true,routes:false,realistic:true,ambient:false,moon:true,sats:true,sprites:true,acAlert:false};
+let SHOW = {stars:true,cons:true,planets:true,meteors:true,planes:true,iss:true,trails:true,labels:false,milkyway:true,realistic:true,ambient:false,moon:true,sats:true,sprites:true,acAlert:false};
 let domeScale = 1; // >1 = full-bleed (ambient mode)
 let BORTLE = 3;        // sky darkness: 1 pristine / 3 suburban / 5 urban / 7 city
 
@@ -3210,8 +3213,9 @@ function draw(now) {
       const elevFade = SHOW.realistic ? Math.max(0, Math.min(1, (elev - CFG.MIN_PLANE_ALT) / 6)) : 1;
       const a = p.fadeIn * elevFade * bootF(5);
       if(a <= 0.01) return;
-      // ── FLIGHT PATH ARC ── (hovered/selected only — in realistic mode never auto-shown)
-      if(((SHOW.realistic ? isSel : (isHov||isSel)) || (SHOW.routes&&PM&&!SHOW.realistic)) && p.vel>30){
+      // ── FLIGHT PATH ARC ── click a plane and its arc appears; outside realistic
+      // mode a hover previews it too. (The old always-on toggle was redundant.)
+      if((SHOW.realistic ? isSel : (isHov||isSel)) && p.vel>30){
         // Project forward (ahead) and backward (behind) along heading
         const ahead = projectGreatCircle(p.lat,p.lon,p.track,900,40,p.alt||10000);
         const behind = projectGreatCircle(p.lat,p.lon,(p.track+180)%360,900,40,p.alt||10000);
@@ -3813,14 +3817,48 @@ function ohCheckISSOverhead(){
   if(p.altDeg<25) OH.issAlerted=false;
 }
 
+// ── NEXT ASTRONOMICAL EVENT ─────────────────────────────────────────────
+// Destination-class events: the ones worth travelling for, where *where you
+// stand* decides what you see. Times are the instant of greatest eclipse in UTC;
+// the suggested site is a real, reachable place inside the path (not the
+// mid-ocean point of greatest eclipse). Circumstances at the named site differ
+// by a couple of minutes — in keeping with the panel's "approximate" footer.
+// Sources: NASA/EclipseWise & Wikipedia eclipse pages.
+const ASTRO_EVENTS = [
+  { name:'TOTAL SOLAR ECLIPSE', utc:'2026-08-12T17:47:00Z',
+    site:'Reykjavík, Iceland', lat:64.15, lon:-21.94,
+    note:'2m18s totality' },
+  { name:'ANNULAR SOLAR ECLIPSE', utc:'2027-02-06T16:01:00Z',
+    site:'Mar del Plata, Argentina', lat:-38.00, lon:-57.55,
+    note:'7m51s ring of fire' },
+  { name:'TOTAL SOLAR ECLIPSE', utc:'2027-08-02T10:07:00Z',
+    site:'Luxor, Egypt', lat:25.69, lon:32.64,
+    note:'6m23s — longest this century' },
+];
+function ohFmtCoord(lat, lon){
+  return Math.abs(lat).toFixed(2)+'°'+(lat>=0?'N':'S')+' '+Math.abs(lon).toFixed(2)+'°'+(lon>=0?'E':'W');
+}
+function ohNextEvent(now=Date.now()){
+  for(const e of ASTRO_EVENTS){
+    const t=Date.parse(e.utc);
+    if(t+3*3600e3 > now) return {...e, t};   // keep showing it for ~3h after peak
+  }
+  return null;
+}
 // ---- countdown panel refresh ----
-function ohRenderISS(){
-  const el=document.getElementById('oh-iss'); if(!el) return;
-  const r=ohNextISSPass();
-  if(r.state==='up')   el.innerHTML='<span class="em">VISIBLE NOW</span>'+(r.mins?(' &middot; ~'+r.mins+'m left'):'');
-  else if(r.state==='soon') el.innerHTML='next pass <span class="em">~'+r.mins+'m</span> &middot; '+ohPassQuality(r.peak);
-  else if(r.state==='none') el.textContent='no pass within ~2h';
-  else el.textContent='acquiring…';
+function ohRenderEvent(){
+  const el=document.getElementById('oh-event'); if(!el) return;
+  const e=ohNextEvent();
+  if(!e){ el.textContent='none scheduled'; return; }
+  const ms=e.t-Date.now();
+  const d=Math.floor(ms/86400e3), h=Math.floor(ms/3600e3)%24, m=Math.floor(ms/60000)%60;
+  const when = ms<=0 ? '<span class="em">HAPPENING NOW</span>'
+             : d>0   ? '<span class="em">in '+d+'d '+h+'h</span>'
+             : '<span class="em">in '+h+'h '+m+'m</span>';
+  const utc = new Date(e.t).toISOString().slice(0,16).replace('T',' ')+' UTC';
+  el.innerHTML = e.name+' &middot; '+when
+    + '<div class="oh-ev-sub">'+e.site+' &middot; '+ohFmtCoord(e.lat,e.lon)+'</div>'
+    + '<div class="oh-ev-sub">best '+utc+(e.note?(' &middot; '+e.note):'')+'</div>';
 }
 function ohRenderSlow(){
   const m=document.getElementById('oh-meteor'); if(m) m.innerHTML=ohMeteor();
@@ -3836,13 +3874,12 @@ const OH_TOUR=[
  {t:'Time & place', sel:'#hud-top', b:'The live time, and the location everything is calculated for. Allow location access and it locks to your exact sky.'},
  {t:'ZENYTH \u00b7 location', sel:'#b-zenyth', b:'No GPS, or want to stand somewhere else? Teleport the sky to any major city or world-class dark-sky site, or type your own coordinates. Your own spot stays live; teleports show that place at its local midnight.'},
  {t:'Sky objects', sel:'#g-sky', b:'Everything in the night sky — stars, constellations, planets, the Moon, the Milky Way and active meteor showers. Open it to show or hide each one.'},
- {t:'Overhead traffic', sel:'#g-traffic', b:'The things crossing over right now: real aircraft from live ADS-B, the ISS and its path, and satellites. Open it to toggle each, or turn on flight paths. Click a plane for its details.'},
+ {t:'Overhead traffic', sel:'#g-traffic', b:'The things crossing over right now: real aircraft from live ADS-B, the ISS and its path, and satellites. Open it to toggle each. Click a plane for its details and its flight path.'},
  {t:'View', sel:'#g-view', b:'How the sky is framed — full-screen or round dome, the photoreal ambient mode, and phone orientation so the dome turns as you turn.'},
  {t:'Style', sel:'#g-style', b:'The look — realistic nav-light planes, how dark your skies are (city to remote), depth, motion trails and on-screen labels.'},
- {t:'Projector', sel:'#g-proj', b:'Projector mode (pure black, large text), render sharpness with a live frame-rate readout, and a manual data refresh.'},
- {t:'Open sky output', sel:'#b-output', b:'Opens a clean, controls-free window to drag onto a projector and cast on the ceiling.'},
- {t:'Record the sky', sel:'#b-record', b:'Records a sped-up time-lapse straight to your Downloads — an hour of sky becomes about a minute of video. It streams safely to disk as it records, so even an unexpected tab-close can be recovered next time.'},
- {t:'Up next & alerts', sel:'#oh-countdown', b:'Approximate timings for the next ISS pass, meteor shower and bright constellations — a guide for fun, not navigation. Allow location and OVERHEAD can alert you the moment the ISS is overhead. Mute with the bell; replay this tour any time with the ? top-left.'}
+ {t:'Ceiling Mode', sel:'#b-output', b:'Opens a clean, controls-free window to drag onto a projector and cast on the ceiling. Set your four corners to fit the ceiling, then its own PROJECTOR panel appears — mirroring and a compass to match how your room faces. Those settings stay in that window and never change this page.'},
+ {t:'Record the sky', sel:'#b-recset', b:'Records a sped-up time-lapse straight to your Downloads — an hour of sky becomes about a minute of video. It streams safely to disk as it records, so even an unexpected tab-close can be recovered next time.'},
+ {t:'Up next & alerts', sel:'#oh-countdown', b:'Approximate timings for the next major sky event (with where and when to see it), meteor shower and bright constellations — a guide for fun, not navigation. Allow location and OVERHEAD can alert you the moment the ISS is overhead. Mute with the bell; replay this tour any time with the ? top-left.'}
 ];
 let ohTourI=0, ohTourEl=null;
 function ohClearSpot(){ if(ohTourEl){ ohTourEl.classList.remove('oh-spot'); ohTourEl=null; } }
@@ -3898,8 +3935,8 @@ function ohBoot(){
   if(IS_OUTPUT) return;
   const b=document.getElementById('oh-bell');
   if(b && OH.muted){ b.classList.add('muted'); b.innerHTML='&#128277;'; b.title='Unmute alerts'; }
-  ohRenderISS(); ohRenderSlow();
-  setInterval(ohRenderISS, 1000);
+  ohRenderEvent(); ohRenderSlow();
+  setInterval(ohRenderEvent, 1000);
   setInterval(ohRenderSlow, 15000);
   setInterval(ohCheckISSOverhead, 5000);
   let seen=false; try{ seen = localStorage.getItem('overhead-tour-done')==='1'; }catch(e){}
