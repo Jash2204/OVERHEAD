@@ -467,35 +467,28 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
 .btn.idle{opacity:0.5;filter:grayscale(1)}
 .btn.idle:hover{opacity:1;filter:none}
 /* ══ CEILING SETTINGS (output window only) ════════════════════════ */
-/* Lives only in the Ceiling Mode window; the main page never shows it. */
-/* Anchored by top/right rather than a centring transform: the shared slideIn
-   keyframes animate `transform`, which would override translateY(-50%) and push
-   the panel off the bottom of the screen. */
-#ceil-panel{position:fixed;right:22px;top:20px;
-  z-index:70;width:290px;max-width:calc(100vw - 36px);background:var(--panel);
-  border:1px solid rgba(255,255,255,0.10);border-top:2px solid var(--amber);
-  backdrop-filter:blur(14px);display:none;font-family:'Share Tech Mono',monospace;
-  max-height:calc(100vh - 40px);overflow-y:auto}
-#ceil-panel.show{display:block;animation:slideIn 0.2s ease}
-#ceil-panel .ctrl-sep{height:1px;background:rgba(255,255,255,0.05)}
+/* Inherits .grp-panel wholesale so it matches the main page's menus exactly —
+   same width, padding, tinted border, blur and type. Only the anchoring differs:
+   top/right instead of the centring transform, because the shared slideIn
+   keyframes animate `transform` and would cancel translate(-50%,-50%). */
+#ceil-panel{left:auto;right:22px;top:20px;transform:none;z-index:70;
+  max-height:calc(100vh - 40px)}
 #ceil-panel .btn{width:100%;min-width:0}
+/* The ceiling window runs in projector mode, which scales every .btn up. That's
+   right for the sky, wrong for this menu — keep the panel at main-page scale. */
+body.projector #ceil-panel .btn{padding:10px 14px;font-size:9px;min-width:130px}
 /* The output window hides the cursor; bring it back while the panel is open. */
 body.output-only.ceil-ui, body.output-only.ceil-ui *{cursor:default!important}
 body.output-only.ceil-ui #ceil-panel button,
 body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
-#ceil-compass{padding:11px 13px 12px}
-#ceil-compass .cc-top{display:flex;justify-content:space-between;align-items:baseline}
-#ceil-compass .cc-ttl{font-size:10px;letter-spacing:0.16em;color:rgba(255,255,255,0.82)}
-#ceil-compass .cc-val{font-size:13px;color:var(--amber)}
-#ceil-compass .cc-sub{font-size:8.5px;letter-spacing:0.08em;color:rgba(255,255,255,0.34);margin:3px 0 8px}
-#cc-slider{width:100%;accent-color:var(--amber);background:transparent}
-#ceil-compass .cc-btns{display:flex;gap:4px;margin-top:8px}
+#ceil-compass .cc-btns{display:flex;gap:4px;margin-top:2px}
 #ceil-compass .cc-btns button{flex:1;padding:4px 0;font-family:'Share Tech Mono',monospace;
-  font-size:8.5px;letter-spacing:0.06em;color:rgba(255,255,255,0.62);
-  background:transparent;border:1px solid rgba(255,255,255,0.14);transition:all 0.15s}
-#ceil-compass .cc-btns button:hover{border-color:var(--amber);color:var(--amber)}
-#ceil-hint{padding:7px 13px 9px;font-size:8px;letter-spacing:0.14em;
-  color:rgba(255,255,255,0.28);border-top:1px solid rgba(255,255,255,0.05)}
+  font-size:8px;letter-spacing:0.06em;color:rgba(255,255,255,0.45);
+  background:transparent;border:1px solid rgba(255,255,255,0.12);transition:all 0.15s}
+#ceil-compass .cc-btns button:hover{border-color:#7fd4ff;color:#7fd4ff}
+#ceil-hint{margin-top:8px;padding-top:8px;font-size:7px;letter-spacing:0.08em;
+  text-transform:uppercase;color:rgba(255,255,255,0.25);
+  border-top:1px solid rgba(255,255,255,0.05)}
 /* ══ v8 ZENYTH — location ═════════════════════════════════════════ */
 #zen-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:60;width:312px;max-width:calc(100vw - 36px);background:var(--panel);
@@ -948,12 +941,12 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 
 <!-- CEILING SETTINGS (output window only) — appears once the corners are set.
      Everything here is local to this window; none of it touches the main page. -->
-<div id="ceil-panel">
+<div id="ceil-panel" class="grp-panel" style="border-top-color:var(--amber)">
   <div class="rec-hd" style="color:var(--amber)">PROJECTOR <span onclick="ceilPanelClose()">&#10005;</span></div>
   <div class="grp-list">
     <button class="btn" id="c-proj" style="--btn-col:var(--amber)" onclick="ceilToggleProjMode()">
       <span class="btn-icon">⬜</span>
-      <span class="btn-label">PROJECTOR MODE<span class="btn-sub">Pure black &middot; large text</span></span>
+      <span class="btn-label">PROJECTOR MODE<span class="btn-sub">Pure black &middot; bigger, bolder text</span></span>
     </button>
     <div class="ctrl-sep"></div>
     <button class="btn" id="c-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
@@ -970,20 +963,22 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
       <span class="btn-label">MIRROR ↔<span class="btn-sub">Swaps east &amp; west on the ceiling</span></span>
     </button>
     <div class="ctrl-sep"></div>
-    <div id="ceil-compass">
-      <div class="cc-top">
-        <span class="cc-ttl">COMPASS</span>
-        <span class="cc-val" id="cc-val">0°</span>
+    <!-- Same markup/classes as the main page's FOV slider row, so it reads as
+         part of the same control set rather than a one-off. -->
+    <div class="fov-row" id="ceil-compass">
+      <div class="fov-hd">
+        <span>COMPASS</span>
+        <span class="fov-num"><span class="fov-deg" id="cc-val">0&deg;</span></span>
       </div>
-      <div class="cc-sub">Turn the sky to match which way the bed faces</div>
-      <input type="range" id="cc-slider" min="0" max="359" step="1" value="0"
-             oninput="setCeilRot(this.value)">
+      <input type="range" id="cc-slider" class="fov-slider" min="0" max="359" step="1" value="0"
+             oninput="setCeilRot(this.value)" aria-label="Compass rotation">
+      <div class="fov-hint">Turn the sky to match which way the bed faces</div>
       <div class="cc-btns">
-        <button onclick="nudgeCeilRot(-15)">−15°</button>
-        <button onclick="nudgeCeilRot(-1)">−1°</button>
+        <button onclick="nudgeCeilRot(-15)">&minus;15&deg;</button>
+        <button onclick="nudgeCeilRot(-1)">&minus;1&deg;</button>
         <button onclick="setCeilRot(0)">RESET</button>
-        <button onclick="nudgeCeilRot(1)">+1°</button>
-        <button onclick="nudgeCeilRot(15)">+15°</button>
+        <button onclick="nudgeCeilRot(1)">+1&deg;</button>
+        <button onclick="nudgeCeilRot(15)">+15&deg;</button>
       </div>
     </div>
     <div class="ctrl-sep"></div>
@@ -2822,6 +2817,9 @@ function drawSaturnRing(p, sz, part){ // part: 'back' (far/upper arc) | 'front' 
 function draw(now) {
   frame++;
   const PM=projectorMode;
+  // Projector mode's whole job on text: bigger and bolder. Label *visibility*
+  // is SHOW.labels' business, so the two can be set independently.
+  const PMW=PM?'bold ':'';
   ctx.clearRect(0,0,W,H);
   const cx=W/2, cy=H/2, dr=DR();
 
@@ -2995,11 +2993,13 @@ function draw(now) {
         g.addColorStop(0,`rgba(${s.col},0.1)`); g.addColorStop(1,'rgba(0,0,0,0)');
         ctx.beginPath(); ctx.arc(s.x,s.y,s.size*5,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
       }
-      if((SHOW.labels||PM)&&!SHOW.ambient){
-        if(s.mag<(PM?3.0:2.2)){
+      if(SHOW.labels&&!SHOW.ambient){
+        // Fixed magnitude cutoff: which stars get named is the labels toggle's
+        // business. Projector mode only changes how the text is drawn (below).
+        if(s.mag<2.2){
           ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=4;
           ctx.fillStyle=PM?'rgba(206,214,226,0.62)':'rgba(190,200,214,0.40)';
-          ctx.font=`${PM?11:8}px Share Tech Mono`;
+          ctx.font=`${PMW}${PM?11:8}px Share Tech Mono`;
           ctx.fillText(s.name,s.x+s.size+(PM?6:4),s.y-2);
           ctx.shadowBlur=0;
         }
@@ -3024,12 +3024,12 @@ function draw(now) {
         ctx.beginPath(); ctx.moveTo(sa.x,sa.y); ctx.lineTo(sb.x,sb.y); ctx.stroke();
       });
       ctx.setLineDash([]);
-      if((SHOW.labels||PM)&&con.segs[0]){
+      if(SHOW.labels&&con.segs[0]){
         const sa=starsNamed.find(s=>s.idx===con.segs[0][0]);
         const sb=starsNamed.find(s=>s.idx===con.segs[0][1]);
         if(sa&&sb&&sa.visible&&sb.visible){
           ctx.fillStyle=PM?'rgba(0,212,255,0.5)':'rgba(0,212,255,0.25)';
-          ctx.font=`${PM?10:7}px Share Tech Mono`;
+          ctx.font=`${PMW}${PM?10:7}px Share Tech Mono`;
           ctx.fillText(con.name,(sa.x+sb.x)/2,(sa.y+sb.y)/2-8);
         }
       }
@@ -3067,10 +3067,10 @@ function draw(now) {
       ctx.beginPath(); ctx.arc(p.x,p.y,sz,0,Math.PI*2); ctx.fillStyle=pg; ctx.fill();
       // ── SATURN RINGS (front arc) ── drawn after the body so the near side passes in front
       if(p.name==='Saturn') drawSaturnRing(p,sz,'front');
-      if((SHOW.labels||PM)&&!SHOW.ambient){
+      if(SHOW.labels&&!SHOW.ambient){
         ctx.shadowColor='rgba(0,0,0,0.85)'; ctx.shadowBlur=4;
         ctx.fillStyle=PM?'rgba(200,180,255,0.9)':'rgba(200,180,255,0.55)';
-        ctx.font=`${PM?12:9}px Share Tech Mono`;
+        ctx.font=`${PMW}${PM?12:9}px Share Tech Mono`;
         ctx.fillText(p.name,p.x+sz+(PM?8:5),p.y-2);
         ctx.shadowBlur=0;
       }
@@ -3187,9 +3187,9 @@ function draw(now) {
       ctx.strokeStyle=`rgba(255,238,68,${0.3+pulse*0.2})`; ctx.lineWidth=1; ctx.stroke();
       ctx.beginPath(); ctx.arc(sh.x,sh.y,3,0,Math.PI*2);
       ctx.fillStyle='rgba(255,238,68,0.8)'; ctx.fill();
-      if(SHOW.labels||PM){
+      if(SHOW.labels){
         ctx.fillStyle=PM?'rgba(255,238,68,0.9)':'rgba(255,238,68,0.55)';
-        ctx.font=`${PM?11:8}px Share Tech Mono`;
+        ctx.font=`${PMW}${PM?11:8}px Share Tech Mono`;
         ctx.fillText(sh.name,sh.x+10,sh.y-4);
         ctx.fillText('ZHR '+sh.zhr,sh.x+10,sh.y+(PM?14:10));
       }
@@ -3349,14 +3349,14 @@ function draw(now) {
       ctx.lineTo(5*s,2*s);ctx.lineTo(1.5*s,-2*s);ctx.closePath(); ctx.fill();
       ctx.shadowBlur=0; ctx.globalAlpha=1; ctx.restore();
       // Labels: in realistic mode, only on hover/select — a clear night sky has no text.
-      const showPlaneLabel = SHOW.realistic ? (isHov||isSel) : (SHOW.labels||isHov||isSel||PM);
+      const showPlaneLabel = SHOW.realistic ? (isHov||isSel) : (SHOW.labels||isHov||isSel);
       if(showPlaneLabel){
         ctx.fillStyle=isSel?'rgba(255,170,0,1)':(isHov?'rgba(255,200,100,0.9)':(PM?'rgba(255,170,0,0.8)':'rgba(255,170,0,0.5)'));
-        ctx.font=`${PM?12:(isHov||isSel?9:8)}px Share Tech Mono`;
+        ctx.font=`${PMW}${PM?12:(isHov||isSel?9:8)}px Share Tech Mono`;
         ctx.fillText(p.callsign,p.sx+(PM?14:11),p.sy-(PM?6:4));
-        if(isHov||isSel||PM){
+        if(isHov||isSel||SHOW.labels){
           ctx.fillStyle='rgba(255,255,255,0.35)';
-          ctx.font=`${PM?10:7}px Share Tech Mono`;
+          ctx.font=`${PMW}${PM?10:7}px Share Tech Mono`;
           ctx.fillText(`${Math.round(p.alt/304.8)*1000}ft`,p.sx+(PM?14:11),p.sy+(PM?8:5));
         }
       }
@@ -3435,11 +3435,11 @@ function draw(now) {
         ctx.restore();
       }
       // Label
-      if(SHOW.realistic ? (isHov||isSel) : (SHOW.labels||isHov||isSel||PM)){
-        ctx.fillStyle='rgba(255,238,200,0.9)'; ctx.font=`${PM?13:9}px Share Tech Mono`;
+      if(SHOW.realistic ? (isHov||isSel) : (SHOW.labels||isHov||isSel)){
+        ctx.fillStyle='rgba(255,238,200,0.9)'; ctx.font=`${PMW}${PM?13:9}px Share Tech Mono`;
         ctx.fillText(`ISS · ${Math.round(iss.alt)}km`,iss.sx+(PM?26:18),iss.sy+(PM?5:3));
-        if(isHov||isSel||PM){
-          ctx.fillStyle='rgba(255,238,200,0.45)'; ctx.font=`${PM?10:7}px Share Tech Mono`;
+        if(isHov||isSel||SHOW.labels){
+          ctx.fillStyle='rgba(255,238,200,0.45)'; ctx.font=`${PMW}${PM?10:7}px Share Tech Mono`;
           ctx.fillText(`${Math.round(iss.vel).toLocaleString()} km/h`,iss.sx+(PM?26:18),iss.sy+(PM?17:12));
         }
       }
