@@ -738,6 +738,7 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
         <option value="moonlit">Moonlit</option>
         <option value="urban">Urban skyglow</option>
         <option value="vivid">Vivid</option>
+        <option value="pitchblack">Pitch black</option>
       </select>
     </div>
     <div class="ctrl-sep"></div>
@@ -944,10 +945,20 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 <div id="ceil-panel" class="grp-panel" style="border-top-color:var(--amber)">
   <div class="rec-hd" style="color:var(--amber)">PROJECTOR <span onclick="ceilPanelClose()">&#10005;</span></div>
   <div class="grp-list">
-    <button class="btn" id="c-proj" style="--btn-col:var(--amber)" onclick="ceilToggleProjMode()">
-      <span class="btn-icon">⬜</span>
-      <span class="btn-label">PROJECTOR MODE<span class="btn-sub">Pure black &middot; bigger, bolder text</span></span>
-    </button>
+    <!-- No PROJECTOR MODE toggle: the ceiling window is always in projector
+         rendering (bigger planets, bigger bolder text). This slot is the sky
+         preset instead — the thing actually worth changing against a ceiling. -->
+    <div class="rec-field" style="padding:9px 12px 10px">
+      <label>SKY PRESETS</label>
+      <select id="c-palette" onchange="setCeilPalette(this.value)">
+        <option value="pitchblack">Pitch black</option>
+        <option value="realistic">Realistic</option>
+        <option value="darksite">Excellent dark site</option>
+        <option value="moonlit">Moonlit</option>
+        <option value="urban">Urban skyglow</option>
+        <option value="vivid">Vivid</option>
+      </select>
+    </div>
     <div class="ctrl-sep"></div>
     <button class="btn" id="c-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
       <span class="btn-icon">▣</span>
@@ -1139,6 +1150,15 @@ const PALETTES = {
     dome:[[0,'#061428'],[0.65,'#030d1e'],[0.9,'#051525'],[1,'#0a1f30']],
     wide:[[0,'#061428'],[0.7,'#030d1e'],[1,'#02060f']],
     starSat:1.0, mwMul:1.3, mwCore:'195,205,250', mwWarm:'238,228,206', bortle:null },
+  // Built for the ceiling. A true #000 field throws no light back at the room, so
+  // the projector's black is the ceiling's black and only the stars, planets and
+  // Milky Way carry any glow. Paired with the most pristine star density (Bortle 1)
+  // and a strong Milky Way, since there's no skyglow to compete with.
+  pitchblack:{ label:'Pitch black',
+    dome:[[0,'#000000'],[1,'#000000']],
+    wide:[[0,'#000000'],[1,'#000000']],
+    starSat:1.0, mwMul:1.35, mwCore:'205,214,255', mwWarm:'240,230,208', bortle:1,
+    pureBlack:true },   // skip twilight wash — the field stays #000 at any hour
 };
 let palette = 'realistic';
 function PAL(){ return PALETTES[palette] || PALETTES.realistic; }
@@ -1178,6 +1198,7 @@ let projectorMode = false;
 let ceilFlipH = false;
 let ceilFlipV = true;
 let ceilRot   = 0;   // compass rotation, degrees clockwise; turns the sky to match how the bed/room faces
+let ceilPalette = 'pitchblack';  // ceiling's own sky preset — defaults to the pure-black one built for projection
 // The mirror above flips the whole canvas, which would flip every label with it.
 // Counter-flip each text draw about its own anchor: mirrored twice, the glyphs
 // come out upright while the sky geometry stays mirrored. Alignment/baseline are
@@ -2295,8 +2316,13 @@ function applyState(s) {
   if(s.projMode) projMode = s.projMode;
   if(typeof s.fovDeg==='number') fovDeg = s.fovDeg;
   if(typeof s.domeFov==='number') domeFov = s.domeFov;
-  if(typeof s.BORTLE==='number') BORTLE = s.BORTLE;
-  if(s.palette && PALETTES[s.palette]) palette = s.palette;
+  // Sky preset (and the star density that comes with it) is ceiling-local in the
+  // output window — otherwise any change on the main page would repaint the
+  // projection mid-show and undo the preset chosen for the room.
+  if(!IS_OUTPUT){
+    if(typeof s.BORTLE==='number') BORTLE = s.BORTLE;
+    if(s.palette && PALETTES[s.palette]) palette = s.palette;
+  }
   if(typeof s.depth3D==='boolean') depth3D = s.depth3D;
   if(typeof s.skyTimeOffsetMs==='number') skyTimeOffsetMs = s.skyTimeOffsetMs;
   // (Ceiling mirror/compass are intentionally absent here — they're owned locally
@@ -2642,8 +2668,8 @@ function toggle(key,btn) {
   syncGroupBadges();
   pushState(); // keep output in sync
 }
-// (toggleProjector removed — projector rendering is now toggled from the Ceiling
-//  Mode panel via ceilToggleProjMode, so it can't alter the main exploring page.)
+// (toggleProjector removed — the Ceiling Mode window is always in projector
+//  rendering, and the main exploring page never uses it.)
 // ═══════════════════════════════════════════════════════
 // CEILING SETTINGS (output window only)
 // ═══════════════════════════════════════════════════════
@@ -2652,7 +2678,8 @@ function toggle(key,btn) {
 // pulled from) the main page. So the landing page stays an exploring view while
 // this window is tuned to the room.
 function saveCeilSettings(){
-  try{ localStorage.setItem('overhead-ceiling', JSON.stringify({h:ceilFlipH,v:ceilFlipV,rot:ceilRot})); }catch(e){}
+  try{ localStorage.setItem('overhead-ceiling',
+    JSON.stringify({h:ceilFlipH,v:ceilFlipV,rot:ceilRot,pal:ceilPalette})); }catch(e){}
 }
 function loadCeilSettings(){
   try{
@@ -2662,8 +2689,28 @@ function loadCeilSettings(){
       if(typeof j.h==='boolean') ceilFlipH=j.h;
       if(typeof j.v==='boolean') ceilFlipV=j.v;
       if(typeof j.rot==='number') ceilRot=((j.rot%360)+360)%360;
+      if(j.pal && PALETTES[j.pal]) ceilPalette=j.pal;
     }
   }catch(e){}
+  // The ceiling window renders its OWN preset, so a change on the main page can't
+  // repaint the projection mid-show (and vice versa).
+  if(IS_OUTPUT) applyCeilPalette();
+  syncCeilUI();
+}
+// Sky preset for the ceiling window only. Mirrors setPalette's work (palette +
+// its Bortle star density) but keeps it local and never calls pushState.
+function applyCeilPalette(){
+  if(!PALETTES[ceilPalette]) ceilPalette='pitchblack';
+  palette = ceilPalette;
+  const b = PALETTES[ceilPalette].bortle;
+  if(b) BORTLE = b;
+  buildStars(); buildMilkyWay();
+}
+function setCeilPalette(name){
+  if(!PALETTES[name]) return;
+  ceilPalette = name;
+  saveCeilSettings();
+  applyCeilPalette();
   syncCeilUI();
 }
 function toggleCeilFlip(axis){
@@ -2688,8 +2735,7 @@ function syncCeilUI(){
   if(bv) bv.classList.toggle('on', ceilFlipV);
   const sl=document.getElementById('cc-slider'); if(sl && +sl.value!==ceilRot) sl.value=ceilRot;
   const vl=document.getElementById('cc-val'); if(vl) vl.textContent=ceilRot+'°';
-  const pb=document.getElementById('c-proj');
-  if(pb){ pb.classList.toggle('on', projectorMode); pb.querySelector('.btn-icon').textContent=projectorMode?'⬜':'⬛'; }
+  const ps=document.getElementById('c-palette'); if(ps) ps.value=ceilPalette;
 }
 function ceilPanelOpen(){
   const p=document.getElementById('ceil-panel');
@@ -2707,12 +2753,6 @@ function ceilPanelToggle(){
   const p=document.getElementById('ceil-panel');
   if(!p) return;
   p.classList.contains('show') ? ceilPanelClose() : ceilPanelOpen();
-}
-// Output mode forces projector rendering on; let the ceiling window turn it off.
-function ceilToggleProjMode(){
-  projectorMode=!projectorMode;
-  document.body.classList.toggle('projector', projectorMode);
-  syncCeilUI();
 }
 function ceilRecalibrate(){ ceilPanelClose(); showCalibration(); }
 function forceRefresh() {
@@ -2852,13 +2892,17 @@ function draw(now) {
 
   // ── TWILIGHT ENGINE ── sky tint follows solar altitude (astro → civil twilight)
   const TWI = Math.max(0, Math.min(1, (sunAltNow+18)/18)); // 0 full night → 1 sun at horizon
-  const STARDIM = 1 - TWI*0.85;
+  // Pitch black ignores twilight star-dimming too: the room is projector-dark
+  // whatever the sun is doing outside, so the stars stay at full strength.
+  const STARDIM = PAL().pureBlack ? 1 : 1 - TWI*0.85;
   // ── DEPTH 3D ── slow Lissajous parallax drift; depth z scales the offset
   // (z→1 = far, barely moves; z→0.35 = near, drifts most). Milky Way stays
   // fixed — it is the farthest thing in the sky.
   const PARX = depth3D ? Math.sin(now/9000)*9 : 0;
   const PARY = depth3D ? Math.cos(now/13000)*9 : 0;
-  if(TWI>0){   // twilight (sunrise/sunset glow) now renders in the projector output too
+  // Pitch black's contract is a #000 field at any hour — no twilight wash, no
+  // horizon glow. Everything that paints the sky field itself is skipped.
+  if(TWI>0 && !PAL().pureBlack){   // twilight (sunrise/sunset glow) now renders in the projector output too
     ctx.save();
     if(projMode==='dome'){ ctx.beginPath(); ctx.arc(cx,cy,dr,0,Math.PI*2); ctx.clip(); }
     // ── DIRECTIONAL TWILIGHT ── the glow is pinned to the Sun's compass azimuth on
