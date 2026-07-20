@@ -458,6 +458,9 @@ body.projector #oh-countdown{display:none}
 .rec-rv-disc{border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5)}
 .rec-rv-disc:hover{border-color:var(--red);color:var(--red)}
 body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-panel{display:none!important}
+/* Ceiling Mode sits idle (greyed) until its window is actually open. */
+.btn.idle{opacity:0.5;filter:grayscale(1)}
+.btn.idle:hover{opacity:1;filter:none}
 /* ══ CEILING SETTINGS (output window only) ════════════════════════ */
 /* Lives only in the Ceiling Mode window; the main page never shows it. */
 /* Anchored by top/right rather than a centring transform: the shared slideIn
@@ -608,7 +611,7 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
   <div class="ctrl-group">
     <button class="btn" id="b-output" style="--btn-col:var(--green)" onclick="openCeilingMode()">
       <span class="btn-icon">⛶</span>
-      <span class="btn-label">CEILING MODE<span class="btn-sub">Clean window for projector</span></span>
+      <span class="btn-label">CEILING MODE<span class="btn-sub">Clean window for projector</span></span><!-- .idle applied at init -->
     </button>
   </div>
   <div class="ctrl-sep" style="background:rgba(0,212,255,0.12)"></div>
@@ -2329,9 +2332,21 @@ function openCeilingMode() {
   const base = location.href.split('?')[0].split('#')[0];
   const url = base + '?mode=output';
 
-  // Open a fresh window with no toolbar where the browser allows it
+  // Fill the screen rather than a fixed 1280x720 box. A small inset is kept on
+  // purpose: some setups (scaled displays, odd multi-monitor offsets) misreport
+  // the work area, and a window opened at the exact screen size can land partly
+  // off-screen with no way to grab it back. Browsers won't let a page force true
+  // fullscreen on a window it opens — that needs a gesture inside that window —
+  // so the output window goes fullscreen on its first click (or F11).
+  const MARGIN = 60;
+  const availW = screen.availWidth  || 1280;
+  const availH = screen.availHeight || 720;
+  const w = Math.max(640, availW - MARGIN);
+  const h = Math.max(480, availH - MARGIN);
+  const left = (screen.availLeft || 0) + Math.round((availW - w) / 2);
+  const top  = (screen.availTop  || 0) + Math.round((availH - h) / 2);
   outWin = window.open(url, 'overhead_output',
-    'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no');
+    `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
 
   if(!outWin) {
     alert('Popup blocked — please allow popups for OVERHEAD, then click "Ceiling Mode" again.');
@@ -2352,9 +2367,24 @@ function openCeilingMode() {
   const burst = setInterval(pushState, 400);
   setTimeout(()=>clearInterval(burst), 3000);
 
-  // Update the button label
+  setCeilingBtnState(true);
+  // The button only lights up while the window is actually open, so watch for the
+  // user closing it and fall back to the idle look.
+  clearInterval(outWatch);
+  outWatch = setInterval(()=>{
+    if(!outWin || outWin.closed){ clearInterval(outWatch); outWatch=null; setCeilingBtnState(false); }
+  }, 1000);
+}
+let outWatch = null;
+// Idle by default (greyed): Ceiling Mode is a thing you go and do, not a state the
+// landing page is in. It only takes on its live colour while the window is open.
+function setCeilingBtnState(open){
   const btn = document.getElementById('b-output');
-  if(btn){ btn.classList.add('on'); btn.querySelector('.btn-sub').textContent='Window open — drag to projector'; }
+  if(!btn) return;
+  btn.classList.toggle('on', open);
+  btn.classList.toggle('idle', !open);
+  const sub = btn.querySelector('.btn-sub');
+  if(sub) sub.textContent = open ? 'Window open — drag to projector' : 'Clean window for projector';
 }
 
 // CONTROL SIDE: respond to handshake messages from the output window
@@ -2409,7 +2439,10 @@ function initOutputMode() {
   });
 
   // Re-fit canvas on resize and fullscreen change
-  function refit(){ sizeCanvas(); buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun(); }
+  // rescaleCornersToViewport keeps the projection filling the window after a resize
+  // or fullscreen toggle — without it the corner-pin stays mapped to the old size
+  // and leaves a black band at the bottom/right.
+  function refit(){ sizeCanvas(); rescaleCornersToViewport(); buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun(); }
   window.addEventListener('resize', refit);
   document.addEventListener('fullscreenchange', refit);
 
@@ -2444,9 +2477,45 @@ function defaultCorners(){
   const ix=window.innerWidth*0.06, iy=window.innerHeight*0.06;
   return [[ix,iy],[window.innerWidth-ix,iy],[window.innerWidth-ix,window.innerHeight-iy],[ix,window.innerHeight-iy]];
 }
+// Corners are PERSISTED AS FRACTIONS of the viewport (0..1), not pixels. Stored in
+// pixels they went stale the moment the window changed size — going fullscreen left
+// the sky mapped to the old, smaller quad with a black band down the bottom/right.
+// Fractions survive any resize, fullscreen toggle or different display.
+function saveCorners(){
+  if(!calCorners) return;
+  const W=window.innerWidth||1, H=window.innerHeight||1;
+  try{ localStorage.setItem('overhead-corners-f', JSON.stringify(calCorners.map(([x,y])=>[x/W,y/H]))); }catch(e){}
+}
 function loadCorners(){
-  try{ const s=localStorage.getItem('overhead-corners'); if(s) return JSON.parse(s); }catch(e){}
+  const W=window.innerWidth, H=window.innerHeight;
+  try{
+    const f=localStorage.getItem('overhead-corners-f');
+    if(f){
+      const j=JSON.parse(f);
+      if(Array.isArray(j)&&j.length===4) return j.map(([fx,fy])=>[fx*W, fy*H]);
+    }
+    // Migrate a legacy pixel-based calibration: best effort, assume it was saved
+    // at roughly this viewport. Re-saved as fractions on the next drag.
+    const old=localStorage.getItem('overhead-corners');
+    if(old){
+      const j=JSON.parse(old);
+      if(Array.isArray(j)&&j.length===4) return j;
+    }
+  }catch(e){}
   return null;
+}
+// Keep the projection filling the window when it resizes / goes fullscreen: scale
+// the corners by how much the viewport changed, then re-apply the transform.
+let calVP = {w:window.innerWidth, h:window.innerHeight};
+function rescaleCornersToViewport(){
+  const W=window.innerWidth, H=window.innerHeight;
+  if(!calCorners || !calVP.w || !calVP.h){ calVP={w:W,h:H}; return; }
+  if(calVP.w===W && calVP.h===H) return;
+  const sx=W/calVP.w, sy=H/calVP.h;
+  calCorners=calCorners.map(([x,y])=>[x*sx, y*sy]);
+  calVP={w:W,h:H};
+  if(calOpen) positionHandles();
+  applyCornerPin();
 }
 // Ceiling mirroring is folded into the corner-pin homography by remapping which
 // source corner goes to which physical corner. That keeps ONE transform on the
@@ -2482,10 +2551,14 @@ function showCalibration(){
   calCorners = loadCorners() || defaultCorners();
   // Rescue: clamp any saved corners into the current viewport so a handle
   // can never be stranded off-screen (old window size, different projector).
-  const M=24;
+  // Clamp to the viewport edge, not an inset: the point is to rescue a corner
+  // stranded off-screen (old window size / different projector), and an inset
+  // would quietly shrink a deliberate full-bleed calibration by 24px on every
+  // reopen — showing up as a thin black frame you can't get rid of.
   calCorners=calCorners.map(([x,y])=>[
-    Math.max(M,Math.min(window.innerWidth-M,x)),
-    Math.max(M,Math.min(window.innerHeight-M,y))]);
+    Math.max(0,Math.min(window.innerWidth,x)),
+    Math.max(0,Math.min(window.innerHeight,y))]);
+  calVP={w:window.innerWidth, h:window.innerHeight};   // baseline for resize rescaling
   document.body.classList.remove('calibrated');
   const ov=document.getElementById('cal-overlay');
   ov.classList.add('show');
@@ -2504,7 +2577,7 @@ function showCalibration(){
           positionHandles(); applyCornerPin();
         };
         const up=()=>{ h.removeEventListener('pointermove',move); h.removeEventListener('pointerup',up);
-          try{ localStorage.setItem('overhead-corners', JSON.stringify(calCorners)); }catch(e){} };
+          saveCorners(); };
         h.addEventListener('pointermove',move);
         h.addEventListener('pointerup',up);
       });
@@ -2517,7 +2590,7 @@ function finishCalibration(){
   document.getElementById('cal-overlay').classList.remove('show');
   document.body.classList.add('calibrated');
   document.body.style.cursor='none';
-  try{ localStorage.setItem('overhead-corners', JSON.stringify(calCorners)); }catch(e){}
+  saveCorners();
   // Corners are set — now offer the projection controls (mirror + compass).
   if(IS_OUTPUT) ceilPanelOpen();
 }
@@ -3838,6 +3911,7 @@ function ohBoot(){
 
 async function init() {
   loadCeilSettings();   // ceiling mirror + compass — owned by the Ceiling Mode window
+  if(!IS_OUTPUT) setCeilingBtnState(false);   // Ceiling Mode starts greyed/idle
   // ── OUTPUT MODE: minimal boot — no loader, no UI, sky only ──
   if(IS_OUTPUT) {
     initOutputMode();
