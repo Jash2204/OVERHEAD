@@ -2,7 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- viewport-fit=cover lets the sky fill an iPhone's rounded/notched display; the
+     safe-area insets below keep the HUD clear of the notch and home indicator.
+     Zoom stays locked because pinch-zoom breaks a full-bleed canvas projection. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#01060f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OVERHEAD">
+<link rel="manifest" href="manifest.webmanifest">
 <title>OVERHEAD — Live Sky Projector</title>
 <meta name="description" content="OVERHEAD is a live sky projector for any location on Earth. Travel anywhere to see the stars, planets, Moon, live aircraft, the ISS and satellites passing overhead in real time — highly customizable and built for full-screen projection.">
 <!-- Inline favicon (amber plane on night sky) — stops the /favicon.ico 404 every visit; no extra file/request. -->
@@ -14,35 +23,31 @@
 <meta property="og:url" content="https://overhead.world/">
 <meta property="og:title" content="OVERHEAD — Live Sky Projector">
 <meta property="og:description" content="Travel to any location on Earth and watch the stars, planets, Moon, live aircraft, the ISS and satellites pass overhead in real time. Highly customizable, built for projection.">
-<!-- og:image: no share image exists in the repo yet. Add a 1200x630 image (e.g. og.png) at the repo root, then uncomment the two lines below.
 <meta property="og:image" content="https://overhead.world/og.png">
-<meta property="og:image:alt" content="OVERHEAD live sky view">
--->
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="OVERHEAD — a night sky with an amber aircraft silhouette overhead">
 
 <!-- Twitter / X -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="OVERHEAD — Live Sky Projector">
 <meta name="twitter:description" content="Travel to any location on Earth and watch the stars, planets, Moon, live aircraft, the ISS and satellites pass overhead in real time.">
-<!-- twitter:image: add the same share image, then uncomment:
 <meta name="twitter:image" content="https://overhead.world/og.png">
--->
+<meta name="twitter:image:alt" content="OVERHEAD — a night sky with an amber aircraft silhouette overhead">
 <style>
-/* v9: self-hosted fonts — no calls to Google (GDPR: no visitor IPs leak to a third party) */
+/* v9: self-hosted fonts — no calls to Google (GDPR: no visitor IPs leak to a third party)
+   Only the weights actually used are declared: Share Tech Mono 400, Rajdhani 600 and
+   700. Rajdhani 300 and 400 were declared but no rule ever requested them (every
+   Rajdhani rule sets 600 or 700 explicitly), so the browser never fetched them.
+   WOFF-only fallbacks are gone too: this app needs optional chaining and nullish
+   coalescing, so the oldest browser that can run it at all is years newer than
+   universal WOFF2 support — the fallback could never have been reached. */
 @font-face{font-family:'Share Tech Mono';font-style:normal;font-weight:400;font-display:swap;
-  src:url('fonts/share-tech-mono-latin-400-normal.woff2') format('woff2'),
-      url('fonts/share-tech-mono-latin-400-normal.woff') format('woff')}
-@font-face{font-family:'Rajdhani';font-style:normal;font-weight:300;font-display:swap;
-  src:url('fonts/rajdhani-latin-300-normal.woff2') format('woff2'),
-      url('fonts/rajdhani-latin-300-normal.woff') format('woff')}
-@font-face{font-family:'Rajdhani';font-style:normal;font-weight:400;font-display:swap;
-  src:url('fonts/rajdhani-latin-400-normal.woff2') format('woff2'),
-      url('fonts/rajdhani-latin-400-normal.woff') format('woff')}
+  src:url('fonts/share-tech-mono-latin-400-normal.woff2') format('woff2')}
 @font-face{font-family:'Rajdhani';font-style:normal;font-weight:600;font-display:swap;
-  src:url('fonts/rajdhani-latin-600-normal.woff2') format('woff2'),
-      url('fonts/rajdhani-latin-600-normal.woff') format('woff')}
+  src:url('fonts/rajdhani-latin-600-normal.woff2') format('woff2')}
 @font-face{font-family:'Rajdhani';font-style:normal;font-weight:700;font-display:swap;
-  src:url('fonts/rajdhani-latin-700-normal.woff2') format('woff2'),
-      url('fonts/rajdhani-latin-700-normal.woff') format('woff')}
+  src:url('fonts/rajdhani-latin-700-normal.woff2') format('woff2')}
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
   --sky:#01060f;--accent:#00d4ff;--amber:#ffaa00;--green:#00ffaa;
@@ -51,11 +56,9 @@
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#000}
 body{font-family:'Share Tech Mono',monospace;cursor:crosshair;transition:background 0.5s}
-body.projector{background:#000}
 canvas{position:fixed;inset:0;z-index:0}
 #vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
   background:radial-gradient(ellipse 75% 75% at 50% 50%,transparent 35%,rgba(0,0,0,0.8) 100%)}
-body.projector #vignette{display:none}
 
 /* ── TOP HUD ── */
 #hud-top{position:fixed;top:0;left:0;right:0;z-index:10;
@@ -63,25 +66,18 @@ body.projector #vignette{display:none}
   padding:14px 20px 36px;
   background:linear-gradient(to bottom,rgba(1,6,15,0.92) 0%,transparent 100%);
   pointer-events:none;transition:all 0.3s}
-body.projector #hud-top{padding:20px 28px 48px}
 .hud-brand{display:flex;flex-direction:column;gap:2px}
 .brand-name{font-family:'Rajdhani',sans-serif;font-weight:700;
   font-size:22px;letter-spacing:0.25em;color:#fff;transition:font-size 0.3s}
-body.projector .brand-name{font-size:30px}
 .brand-sub{font-size:9px;letter-spacing:0.3em;color:var(--accent);opacity:0.7;transition:font-size 0.3s}
-body.projector .brand-sub{font-size:12px}
 .hud-clock{text-align:center}
 .clock-time{font-family:'Rajdhani',sans-serif;font-weight:600;
   font-size:32px;letter-spacing:0.08em;color:#fff;line-height:1;transition:font-size 0.3s}
-body.projector .clock-time{font-size:48px}
 .clock-date{font-size:9px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);margin-top:3px;transition:font-size 0.3s}
-body.projector .clock-date{font-size:13px}
 .hud-stats{display:flex;gap:20px;align-items:flex-start}
 .stat{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .stat-n{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;line-height:1;transition:font-size 0.3s}
-body.projector .stat-n{font-size:32px}
 .stat-l{font-size:8px;letter-spacing:0.2em;color:rgba(255,255,255,0.3);transition:font-size 0.3s}
-body.projector .stat-l{font-size:11px}
 
 /* ── BOTTOM BAR ── */
 #hud-bot{position:fixed;bottom:0;left:0;right:0;z-index:10;
@@ -91,15 +87,18 @@ body.projector .stat-l{font-size:11px}
   pointer-events:none}
 .legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
 .leg{display:flex;align-items:center;gap:5px;font-size:9px;letter-spacing:0.15em;color:rgba(255,255,255,0.35)}
-body.projector .leg{font-size:13px}
 .leg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .loc-text{font-size:9px;letter-spacing:0.12em;color:rgba(255,255,255,0.25);text-align:right}
-body.projector .loc-text{font-size:12px}
+/* Location confidence. Only the aircraft layer is sensitive to observer error, so a
+   coarse fix has to be visible rather than silently wrong — see confidenceOf(). */
+.loc-text.loc-approximate{color:rgba(255,200,120,0.55)}
+.loc-text.loc-coarse{color:rgba(255,170,0,0.75)}
+.loc-text.loc-unset{color:rgba(255,120,120,0.70)}
 
 /* ── FACING COMPASS (mobile only) — device orientation read on-device, never sent ── */
 #compass{display:none;position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:12;
   width:54px;height:54px;border-radius:50%;background:rgba(1,8,18,0.55);
-  border:1px solid rgba(0,212,255,0.25);backdrop-filter:blur(4px);cursor:pointer;pointer-events:auto}
+  border:1px solid rgba(0,212,255,0.25);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);cursor:pointer;pointer-events:auto}
 @media (pointer:coarse){#compass{display:block}}
 body.output-only #compass{display:none}
 .compass-rose{position:absolute;inset:0;transition:transform 0.15s ease-out}
@@ -128,7 +127,7 @@ body.output-only #compass{display:none}
   border-left:1px solid rgba(0,212,255,0.12);
   border-top:1px solid rgba(0,212,255,0.08);
   border-bottom:1px solid rgba(0,212,255,0.08);
-  backdrop-filter:blur(8px)}
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .ctrl-group{display:flex;flex-direction:column}
 .ctrl-sep{height:1px;background:rgba(255,255,255,0.06);margin:0}
 /* v9.5: collapsible control menu (mobile space-saver) */
@@ -159,14 +158,12 @@ body.output-only #compass{display:none}
 .btn-label{flex:1}
 .btn-sub{font-size:7px;color:rgba(255,255,255,0.2);display:block;margin-top:1px;letter-spacing:0.08em}
 /* projector mode scales sidebar */
-body.projector .btn{padding:14px 18px;font-size:12px;min-width:170px}
-body.projector .btn-icon{font-size:18px}
 
 /* ── INFO PANEL ── */
 #info{position:fixed;left:20px;bottom:76px;z-index:20;
   background:var(--panel);border:1px solid rgba(0,212,255,0.2);
   padding:16px 20px;min-width:230px;max-width:290px;
-  display:none;backdrop-filter:blur(12px);animation:slideIn 0.2s ease}
+  display:none;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);animation:slideIn 0.2s ease}
 #info.show{display:block}
 @keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .info-hd{font-family:'Rajdhani',sans-serif;font-weight:700;
@@ -193,7 +190,6 @@ body.projector .btn-icon{font-size:18px}
 .alert-cs{font-family:'Rajdhani',sans-serif;font-weight:700;
   font-size:28px;letter-spacing:0.15em;color:var(--amber)}
 .alert-sub{font-size:9px;letter-spacing:0.25em;color:rgba(255,170,0,0.6);margin-top:4px}
-body.projector .alert-cs{font-size:44px}
 
 /* ── TOOLTIP ── */
 #tooltip{position:fixed;z-index:15;background:rgba(1,10,22,0.9);
@@ -257,23 +253,13 @@ body.output-only #oh-tour,
 body.output-only #oh-tour-dim { display:none !important; }
 body.output-only { cursor:none !important; background:#000 !important; }
 body.output-only::-webkit-scrollbar { display:none; }
-#output-hint{
-  position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
-  z-index:200; font-family:'Share Tech Mono',monospace;
-  font-size:13px; letter-spacing:0.25em; color:rgba(0,212,255,0.75);
-  background:rgba(1,10,22,0.7); padding:12px 24px; border-radius:3px;
-  border:1px solid rgba(0,212,255,0.25); pointer-events:none;
-  transition:opacity 1.5s; text-align:center;
-}
-#output-hint.fade{ opacity:0; }
 
 /* ══ v7.2 USHER — countdowns, tour, notifications ══════════════ */
 #oh-countdown{position:fixed;top:64px;left:14px;z-index:12;
   width:246px;background:var(--panel);
   border:1px solid rgba(0,212,255,0.2);border-left:2px solid var(--accent);
-  backdrop-filter:blur(12px);font-family:'Share Tech Mono',monospace;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-family:'Share Tech Mono',monospace;
   transition:transform .25s ease,opacity .25s ease}
-#oh-countdown.collapsed .oh-cd-body{display:none}
 .oh-cd-hd{display:flex;align-items:center;gap:6px;padding:8px 10px;
   border-bottom:1px solid rgba(0,212,255,0.12)}
 .oh-cd-title{flex:1;font-family:'Rajdhani',sans-serif;font-weight:700;
@@ -298,7 +284,6 @@ body.output-only::-webkit-scrollbar { display:none; }
   color:rgba(255,255,255,0.42);margin-top:1px;white-space:normal}
 .oh-cd-foot{padding:5px 11px 7px;font-size:6.5px;letter-spacing:0.18em;
   color:rgba(255,255,255,0.22);border-top:1px solid rgba(255,255,255,0.05)}
-body.projector #oh-countdown{display:none}
 
 /* toasts */
 #oh-toasts{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);
@@ -306,9 +291,12 @@ body.projector #oh-countdown{display:none}
   pointer-events:none}
 .oh-toast{min-width:240px;max-width:330px;background:var(--panel);
   border:1px solid var(--tc,var(--green));border-left:3px solid var(--tc,var(--green));
-  backdrop-filter:blur(12px);padding:11px 16px;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:11px 16px;
   opacity:0;transform:translateY(10px);transition:opacity .35s,transform .35s}
 .oh-toast.in{opacity:1;transform:translateY(0)}
+/* A toast carrying an action (e.g. "use this GPS fix instead") is clickable. */
+.oh-toast-act{cursor:pointer;border-left-width:3px}
+.oh-toast-act:hover{background:rgba(1,14,28,0.97)}
 .oh-toast-t{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;
   letter-spacing:0.12em;color:var(--tc,var(--green))}
 .oh-toast-m{font-size:10px;letter-spacing:0.03em;color:rgba(255,255,255,0.7);margin-top:3px}
@@ -324,7 +312,7 @@ body.projector #oh-countdown{display:none}
 #oh-tour{position:fixed;left:24px;top:50%;transform:translateY(-50%);
   z-index:10000;width:340px;max-width:calc(100vw - 48px);
   background:var(--panel);border:1px solid rgba(0,212,255,0.28);
-  border-top:2px solid var(--accent);backdrop-filter:blur(14px);
+  border-top:2px solid var(--accent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   display:none;padding:20px 22px 16px;font-family:'Share Tech Mono',monospace;
   animation:ohCard .25s ease}
 #oh-tour.show{display:block}
@@ -354,6 +342,155 @@ body.projector #oh-countdown{display:none}
   #oh-countdown{width:188px}
 }
 
+/* ════════════════════════════════════════════════════════════════
+   MOBILE / TOUCH
+   The app was built for a Windows laptop driving a projector. On a phone the
+   same markup needs: safe-area clearance (notch + home indicator), dynamic
+   viewport units (mobile Safari's `vh` means the URL-bar-hidden height, so
+   panels overflowed), legible type, 44px touch targets, and the right-hand
+   sidebar re-cast as a bottom sheet. Keyed off `pointer:coarse` rather than
+   width so a touch laptop doesn't get phone styling at desktop size.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Dynamic viewport height. The base rules above already carry vh values, which
+   stand as the fallback wherever dvh is unsupported — so only the upgrade is
+   declared here. Matters on mobile Safari, where vh means the URL-bar-hidden
+   height and panels would otherwise overflow the visible area. */
+@supports (height:100dvh){
+  #controls{max-height:94dvh}
+  .grp-panel{max-height:82dvh}
+  #oh-tour-dim{height:100dvh}
+}
+
+/* Safe areas — applies on every device; insets are 0 where there's no notch. */
+#hud-top{padding-top:calc(14px + env(safe-area-inset-top));
+  padding-left:calc(20px + env(safe-area-inset-left));
+  padding-right:calc(20px + env(safe-area-inset-right))}
+/* --legal-h is the attribution footer's measured height, published by JS below.
+   The bottom HUD and the mobile control sheet both stack against it rather than
+   guessing, so the footer can wrap to any number of lines without colliding. */
+#hud-bot{padding-bottom:calc(var(--legal-h, 20px) + 6px + env(safe-area-inset-bottom));
+  padding-left:calc(20px + env(safe-area-inset-left));
+  padding-right:calc(20px + env(safe-area-inset-right))}
+#oh-countdown{margin-top:env(safe-area-inset-top)}
+#compass{margin-left:env(safe-area-inset-left)}
+
+@media (pointer:coarse){
+  /* ── Type scale ── the desktop sheet goes down to 6.5px, which is unreadable
+     at arm's length on a phone. Bump the small end without touching layout. */
+  .btn{font-size:12px;padding:14px 16px}
+  .btn-sub{font-size:10px}
+  .btn-icon{font-size:17px;width:22px}
+  .rec-field label{font-size:11px}
+  .rec-field select,.rec-field input{font-size:12px;padding:9px 24px 9px 10px}
+  .rec-intro{font-size:10.5px}
+  .rec-hd{font-size:15px}
+  .zen-in{font-size:13px;padding:11px 10px}
+  .zen-res{font-size:11.5px;padding:11px 10px}
+  .oh-cd-hd .oh-cd-title{font-size:11px}
+  .oh-row-l{font-size:9px}
+  .oh-row-v{font-size:11px}
+  .oh-cd-foot{font-size:8px}
+  .stat-l{font-size:9px}
+  .clock-date{font-size:10px}
+
+  /* ── Touch targets ── 44px minimum. */
+  .oh-icon-btn{min-width:44px;min-height:44px;font-size:16px}
+  .zen-btn{padding:14px;font-size:12px}
+  .cc-btns button{padding:10px 8px;font-size:11px}
+  .fov-slider{height:26px}
+  .rec-hd span{padding:6px 10px;margin:-6px -10px}
+
+  /* ── Sidebar becomes a bottom sheet ── a fixed right rail at top:50% eats a
+     third of a portrait phone. Reuses the existing .collapsed mechanism, so the
+     header doubles as the sheet handle. */
+  #controls{
+    right:0;left:0;top:auto;bottom:0;transform:none;
+    max-height:min(64vh,560px);
+    border-left:none;border-bottom:none;
+    border-top:1px solid rgba(0,212,255,0.22);
+    border-radius:14px 14px 0 0;
+    /* Sits directly on top of the attribution footer rather than over it. The
+       footer carries the safe-area inset now, so the sheet no longer needs its own.
+       The 4px is slack: --legal-h is republished asynchronously after web fonts
+       settle, and a brief under-measure must not show as a visible overlap. */
+    bottom:calc(var(--legal-h, 0px) + 4px);
+    box-shadow:0 -10px 34px rgba(0,0,0,0.55);
+    -webkit-overflow-scrolling:touch}
+  @supports (height:100dvh){ #controls{max-height:min(64dvh,560px)} }
+  #controls.collapsed{max-height:none}
+  .ctrl-head{justify-content:center;gap:10px;padding:13px;font-size:13px;
+    border-radius:14px 14px 0 0;position:relative}
+  /* Grab-handle affordance above the label. */
+  .ctrl-head::before{content:'';position:absolute;top:5px;left:50%;
+    transform:translateX(-50%);width:34px;height:3px;border-radius:2px;
+    background:rgba(127,212,255,0.35)}
+  .btn{min-width:0;white-space:normal}
+
+  /* Bottom bar must clear both the sheet and the footer; the 7-item legend
+     can't fit a phone. */
+  #hud-bot{padding-bottom:calc(var(--legal-h, 20px) + 60px + env(safe-area-inset-bottom))}
+  .legend{display:none}
+  .loc-text{text-align:left;font-size:10px}
+  #net-status{bottom:calc(96px + env(safe-area-inset-bottom));max-width:70vw}
+  #info{left:12px;right:12px;max-width:none;min-width:0;
+    bottom:calc(84px + env(safe-area-inset-bottom))}
+
+  /* (Centred-panel sizing lives in the late-cascade block at the end of this
+     stylesheet — the base #zen-panel/#rec-panel rules are declared after this
+     media query, so a rule here would lose on source order.) */
+
+  /* Ceiling Mode opens a second window for a projector — meaningless on a phone,
+     and window.open feature strings are ignored on iOS anyway. */
+  body.is-touch #b-output{display:none}
+  body.is-touch #b-output + .ctrl-sep{display:none}
+
+  /* Hover affordances never fire on touch. */
+  #tooltip{display:none !important}
+}
+
+/* Very narrow: the top HUD's three columns need to shed the clock. */
+@media (max-width:430px){
+  .hud-clock{display:none}
+  .brand-name{font-size:17px}
+  .brand-sub{font-size:7.5px}
+  .hud-stats{gap:13px}
+  .stat-n{font-size:17px}
+}
+
+/* Landscape phone: almost no vertical room — shrink the chrome hard. */
+@media (pointer:coarse) and (max-height:460px){
+  #hud-top{padding:8px 14px 20px}
+  #hud-bot{padding-top:14px}
+  #controls{max-height:78vh}
+  @supports (height:100dvh){ #controls{max-height:78dvh} }
+  #oh-countdown{display:none}
+  #fetch-bar{display:none}
+}
+
+/* Respect a reduced-motion preference — the boot sweep, toast slides and panel
+   animations are decorative. Canvas animation is the content, so it stays. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;
+    animation-iteration-count:1 !important;transition-duration:0.01ms !important}
+}
+
+/* ── UP NEXT: fully hidden state + restore chip ──
+   The × dismisses the panel outright (persisted). Without a way back that would
+   be a one-way door, so a small chip takes its place; the VIEW menu also has a
+   toggle for people who don't spot it. */
+#oh-countdown.oh-hidden{display:none}
+#oh-restore{position:fixed;top:96px;right:16px;z-index:19;display:none;
+  align-items:center;gap:6px;padding:7px 11px;cursor:pointer;
+  background:rgba(1,10,22,0.82);border:1px solid rgba(0,212,255,0.28);
+  border-radius:20px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.16em;
+  color:rgba(127,212,255,0.8);margin-top:env(safe-area-inset-top)}
+#oh-restore.show{display:inline-flex}
+#oh-restore:hover{color:#7fd4ff;border-color:rgba(0,212,255,0.55)}
+body.output-only #oh-restore{display:none !important}
+@media (pointer:coarse){ #oh-restore{font-size:11px;padding:10px 14px} }
+
 /* ══ v7.5 TIMELAPSE — Record Sky ══════════════════════════════ */
 .btn.recording{color:#fff;border-left-color:var(--red)!important}
 .btn.recording .btn-icon{color:var(--red);animation:recBlink 1.1s steps(1,end) infinite}
@@ -361,7 +498,7 @@ body.projector #oh-countdown{display:none}
 #rec-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:60;width:308px;max-width:calc(100vw - 36px);background:var(--panel);
   border:1px solid rgba(255,68,102,0.30);border-top:2px solid var(--red);
-  backdrop-filter:blur(14px);padding:18px 20px 16px;display:none;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:18px 20px 16px;display:none;
   font-family:'Share Tech Mono',monospace}
 #rec-panel.show{display:block;animation:slideIn 0.2s ease}
 .rec-hd{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:14px;
@@ -387,7 +524,7 @@ body.projector #oh-countdown{display:none}
 .grp-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:60;width:308px;max-width:calc(100vw - 36px);max-height:82vh;overflow-y:auto;
   background:var(--panel);border:1px solid rgba(0,212,255,0.30);border-top:2px solid var(--accent);
-  backdrop-filter:blur(14px);padding:14px 14px 12px;display:none;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:14px 14px 12px;display:none;
   font-family:'Share Tech Mono',monospace}
 .grp-panel.show{display:block;animation:slideIn 0.2s ease}
 .grp-panel .ctrl-sep{height:1px;background:rgba(255,255,255,0.05);margin:0}
@@ -449,7 +586,7 @@ body.projector #oh-countdown{display:none}
 #rec-recover{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);
   z-index:45;width:332px;max-width:calc(100vw - 36px);background:var(--panel);
   border:1px solid rgba(0,255,170,0.3);border-left:3px solid var(--green);
-  backdrop-filter:blur(12px);padding:14px 16px;display:none}
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:14px 16px;display:none}
 #rec-recover.show{display:block;animation:slideIn 0.25s ease}
 .rec-rv-t{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;
   letter-spacing:0.1em;color:var(--green)}
@@ -476,7 +613,6 @@ body.output-only #rec-panel,body.output-only #rec-recover,body.output-only #zen-
 #ceil-panel .btn{width:100%;min-width:0}
 /* The ceiling window runs in projector mode, which scales every .btn up. That's
    right for the sky, wrong for this menu — keep the panel at main-page scale. */
-body.projector #ceil-panel .btn{padding:10px 14px;font-size:9px;min-width:130px}
 /* The output window hides the cursor; bring it back while the panel is open. */
 body.output-only.ceil-ui, body.output-only.ceil-ui *{cursor:default!important}
 body.output-only.ceil-ui #ceil-panel button,
@@ -493,7 +629,7 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 #zen-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:60;width:312px;max-width:calc(100vw - 36px);background:var(--panel);
   border:1px solid rgba(0,212,255,0.30);border-top:2px solid var(--accent);
-  backdrop-filter:blur(14px);padding:18px 20px 16px;display:none;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);padding:18px 20px 16px;display:none;
   font-family:'Share Tech Mono',monospace}
 #zen-panel.show{display:block;animation:slideIn 0.2s ease}
 #zen-panel .rec-hd{color:var(--accent)}
@@ -512,6 +648,26 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 .zen-res:last-child{border-bottom:none}
 .zen-res:hover{background:rgba(0,212,255,0.12);color:#fff}
 .zen-res-msg{padding:9px 11px;font-size:10px;color:rgba(255,255,255,0.4)}
+/* Match precision + intent. A house result and the city around it look identical
+   without this, and they differ by ~5 km — which is 27° of error on an overhead
+   aircraft, so it's worth the extra line. */
+.zen-res-main{overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+  -webkit-line-clamp:2;-webkit-box-orient:vertical}
+.zen-res-meta{margin-top:3px;font-size:8.5px;letter-spacing:0.14em;
+  color:rgba(127,212,255,0.65)}
+.zen-res-btns{display:flex;gap:6px;margin-top:7px}
+.zen-res-b{flex:1;padding:7px 6px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:0.12em;
+  background:transparent;border:1px solid rgba(0,212,255,0.28);
+  color:rgba(255,255,255,0.6);border-radius:2px}
+.zen-res-b:hover{border-color:var(--accent);color:#fff;background:rgba(0,212,255,0.12)}
+.zen-res-b.primary{border-color:rgba(0,255,170,0.45);color:rgba(0,255,170,0.9)}
+.zen-res-b.primary:hover{border-color:var(--green);color:#01060f;background:var(--green)}
+@media (pointer:coarse){
+  .zen-res{padding:11px}
+  .zen-res-meta{font-size:10px}
+  .zen-res-b{padding:11px 6px;font-size:10px}
+}
 .zen-lastresort{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
 .zen-lr-label{font-size:9px;letter-spacing:0.06em;color:rgba(255,255,255,0.4);margin-bottom:8px;line-height:1.4}
 .zen-coords{display:flex;gap:8px}
@@ -526,6 +682,93 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 #zen-panel .rec-readout{border-color:rgba(0,212,255,0.18);background:rgba(0,212,255,0.06)}
 #zen-panel .rec-readout b{color:var(--accent)}
 
+/* ── LEGAL / ATTRIBUTION FOOTER ──
+   The app had no <a> tags at all, so PRIVACY.html, TERMS.html and the attribution
+   notice were reachable only by typing the URL. ODbL (adsb.lol and OpenStreetMap)
+   requires the attribution to be visible to the user of the work, so this has to be
+   present on first load without opening any menu — including on mobile.
+   Deliberately dim: it sits over a night sky and must not compete with it. */
+#legal{position:fixed;left:0;right:0;bottom:0;z-index:11;
+  display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;
+  gap:4px 10px;padding:0 14px 6px;
+  padding-bottom:calc(6px + env(safe-area-inset-bottom));
+  padding-left:calc(14px + env(safe-area-inset-left));
+  padding-right:calc(14px + env(safe-area-inset-right));
+  font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:0.1em;
+  color:rgba(255,255,255,0.30);pointer-events:none;text-align:center}
+#legal a{color:rgba(140,190,225,0.55);text-decoration:none;pointer-events:auto;
+  padding:2px 0;border-bottom:1px solid transparent}
+#legal a:hover,#legal a:focus-visible{color:var(--accent);border-bottom-color:rgba(0,212,255,0.45)}
+#legal .lg-sep{opacity:0.35}
+#legal .lg-credit{color:rgba(255,255,255,0.26)}
+/* Sky-only windows get no chrome of any kind. */
+body.output-only #legal,
+body.projector  #legal{display:none !important}
+
+@media (pointer:coarse){
+  #legal{font-size:9.5px;gap:5px 12px;
+    /* Clear the bottom sheet, which is anchored to the same edge. */
+    padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  #legal a{padding:5px 0}          /* easier tap target without changing the row height much */
+}
+/* Landscape phones have almost no vertical room; keep the links, drop the prose. */
+@media (pointer:coarse) and (max-height:460px){
+  #legal .lg-credit{display:none}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LATE CASCADE — must come after every base rule it overrides.
+   ════════════════════════════════════════════════════════════════ */
+
+/* The centred panels are positioned with translate(-50%,-50%), but slideIn's
+   `to` frame sets transform:translateY(0) — which replaces the whole transform
+   and drops the centring for the duration of the animation, so the panel opened
+   visibly off-centre and snapped back. This keyframe carries the centring
+   through. (Pre-existing on desktop; it just matters more on a phone, where the
+   offset pushes the panel off-screen.) */
+@keyframes slideInCentered{
+  from{opacity:0;transform:translate(-50%,-50%) translateY(6px)}
+  to{opacity:1;transform:translate(-50%,-50%)}
+}
+.grp-panel.show,#rec-panel.show,#zen-panel.show{animation:slideInCentered 0.2s ease}
+
+/* These panels can be taller than a phone screen (ZENYTH with results open is
+   ~685px against an 812px viewport, centred — so it overflowed top and bottom).
+   Cap them to the viewport and let the content scroll inside. */
+.grp-panel,#rec-panel,#zen-panel{
+  max-height:calc(100vh - 24px);overflow-y:auto;-webkit-overflow-scrolling:touch}
+@supports (height:100dvh){
+  .grp-panel,#rec-panel,#zen-panel{max-height:calc(100dvh - 24px)}
+}
+@media (pointer:coarse){
+  .grp-panel,#rec-panel,#zen-panel{
+    width:min(340px,calc(100vw - 20px));
+    max-height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px)}
+  @supports (height:100dvh){
+    .grp-panel,#rec-panel,#zen-panel{
+      max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 20px)}
+  }
+  /* 44px minimum touch target — set as min-height rather than tuned padding, so
+     it holds regardless of font metrics. */
+  .zen-res-b{padding:12px 6px;min-height:44px}
+  .zen-btn{padding:14px;min-height:44px}
+  .oh-icon-btn{min-width:44px;min-height:44px}
+  .btn{min-height:44px}
+  .rec-field select{min-height:40px}
+  /* iOS Safari ZOOMS the whole page whenever a focused input has a font-size below
+     16px, and it does not zoom back out afterwards — the user is left pinching the
+     sky back into place after typing an address. 16px is a hard threshold in
+     WebKit, not a style preference, so every text/number input has to clear it on
+     touch devices regardless of how the control looks on a desktop. */
+  #zen-search,#zen-lat,#zen-lon{font-size:16px}
+  #zen-search{min-height:44px}
+  #zen-lat,#zen-lon{min-height:36px}
+  /* The base rule for this one is .fov-row .fov-hd .fov-num input#fov-input, which
+     out-specifies a bare #fov-input — so the font-size has to be set at the same
+     specificity or it silently loses. 34px was sized for a 10px font; at 16px the
+     value would be clipped, hence the width bump. */
+  .fov-row .fov-hd .fov-num input#fov-input{font-size:16px;width:56px}
+}
 </style>
 </head>
 <body>
@@ -695,14 +938,19 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
       <span class="btn-label">VIEW: WIDE<span class="btn-sub">Fill screen · tap for dome</span></span>
     </button>
     <div class="fov-row" id="fov-row">
-      <div class="fov-hd"><span>FIELD OF VIEW</span><span class="fov-num"><input type="number" id="fov-input" min="30" max="160" step="1" value="100" onchange="setFov(this.value)" oninput="setFov(this.value)" aria-label="Field of view in degrees"><span class="fov-deg">&deg;</span></span></div>
-      <input type="range" id="fov-slider" class="fov-slider" min="30" max="160" step="1" value="100" oninput="setFov(this.value)" aria-label="Field of view">
+      <div class="fov-hd"><span>FIELD OF VIEW</span><span class="fov-num"><input type="number" id="fov-input" min="30" max="160" step="1" value="100" oninput="setFov(this.value, true)" onchange="setFov(this.value)" aria-label="Field of view in degrees"><span class="fov-deg">&deg;</span></span></div>
+      <input type="range" id="fov-slider" class="fov-slider" min="30" max="160" step="1" value="100" oninput="setFov(this.value,true)" onchange="setFov(this.value)" aria-label="Field of view">
       <div class="fov-hint">Drag or type · wide &amp; dome</div>
     </div>
     <div class="ctrl-sep"></div>
     <button class="btn" id="b-ambient" style="--btn-col:#9db8ff" onclick="toggleAmbient(this)">
       <span class="btn-icon">✦</span>
       <span class="btn-label">AMBIENT MODE<span class="btn-sub">Photoreal dense star field</span></span>
+    </button>
+    <div class="ctrl-sep"></div>
+    <button class="btn on" id="b-upnext" style="--btn-col:#9fe8ff" onclick="ohSetCountdown()">
+      <span class="btn-icon">&#9673;</span>
+      <span class="btn-label">UP NEXT PANEL<span class="btn-sub">Show or hide the events readout</span></span>
     </button>
     <div class="ctrl-sep"></div>
     <div class="orient-row">
@@ -869,11 +1117,18 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
     <span class="oh-cd-title">UP NEXT</span>
     <button class="oh-icon-btn" id="oh-bell" title="Mute alerts" onclick="ohToggleMute()">&#128276;</button>
     <button class="oh-icon-btn" id="oh-help" title="Replay tour" onclick="ohStartTour()">?</button>
-    <button class="oh-icon-btn" id="oh-collapse" title="Hide" onclick="document.getElementById('oh-countdown').classList.toggle('collapsed')">&#8211;</button>
+    <!-- v10.1: this was a collapse ("–") that only folded the body away. Replaced
+         with a real dismiss: a fourth button would have crowded an already tight
+         header, and "hide it completely" is what people actually want here. The
+         state persists, and #oh-restore / the VIEW menu bring it back. -->
+    <button class="oh-icon-btn" id="oh-close" title="Hide this panel" onclick="ohSetCountdown(false)">&#10005;</button>
   </div>
   <div class="oh-cd-body">
     <div class="oh-row"><span class="oh-row-ic" style="color:var(--green)">&#9673;</span>
       <span class="oh-row-tx"><div class="oh-row-l">NEXT EVENT</div><div class="oh-row-v" id="oh-event">&mdash;</div></span></div>
+    <!-- ISS pass: the one row where "when and where to look" is genuinely actionable. -->
+    <div class="oh-row"><span class="oh-row-ic" style="color:var(--green)">&#9678;</span>
+      <span class="oh-row-tx"><div class="oh-row-l">ISS PASS</div><div class="oh-row-v" id="oh-iss">&mdash;</div></span></div>
     <div class="oh-row"><span class="oh-row-ic" style="color:var(--yellow)">&#9732;</span>
       <span class="oh-row-tx"><div class="oh-row-l">METEORS</div><div class="oh-row-v" id="oh-meteor">&mdash;</div></span></div>
     <div class="oh-row"><span class="oh-row-ic" style="color:var(--accent)">&#8756;</span>
@@ -889,9 +1144,9 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
     or address to teleport the night sky there, pick a world-class dark-sky site, or use GPS.
     Nothing is stored.</div>
   <div class="rec-field zen-search-field">
-    <label>SEARCH ANY PLACE</label>
+    <label>SEARCH ANY PLACE OR ADDRESS</label>
     <input id="zen-search" class="zen-in zen-search-in" type="text" autocomplete="off" spellcheck="false"
-      placeholder="City, town, postcode or address…" oninput="zenSearchInput()">
+      placeholder="Your full address, or any city…" oninput="zenSearchInput()">
     <div id="zen-results" class="zen-results"></div>
   </div>
   <div class="rec-field">
@@ -911,6 +1166,21 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
   <div class="rec-note">Teleporting to a city or dark-sky site shows it at local midnight for a
     true night sky. Your own coordinates stay live. No location data is ever stored.</div>
 </div>
+
+<!-- LEGAL / ATTRIBUTION FOOTER
+     The only links in the app. ODbL requires adsb.lol and OpenStreetMap attribution
+     to be visible to the user, so this is always-on rather than tucked in a menu.
+     Hidden entirely in Ceiling Mode (see body.output-only / body.projector rules). -->
+<div id="legal">
+  <a href="PRIVACY.html">PRIVACY</a><span class="lg-sep">·</span>
+  <a href="TERMS.html">TERMS</a><span class="lg-sep">·</span>
+  <a href="NOTICE.html">NOTICES &amp; ATTRIBUTION</a><span class="lg-sep">·</span>
+  <span class="lg-credit">AIRCRAFT DATA &copy; adsb.lol CONTRIBUTORS (ODbL) &middot;
+    PLACE NAMES &copy; OpenStreetMap contributors (ODbL)</span>
+</div>
+
+<!-- Restore chip for a dismissed UP NEXT panel — keeps the × from being a one-way door. -->
+<div id="oh-restore" onclick="ohSetCountdown(true)" title="Show the UP NEXT panel">&#9673; UP NEXT</div>
 
 <!-- v7.2 — TOAST HOST -->
 <div id="oh-toasts"></div>
@@ -959,6 +1229,11 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
         <option value="vivid">Vivid</option>
       </select>
     </div>
+    <div class="ctrl-sep"></div>
+    <button class="btn on" id="c-info" style="--btn-col:#9fe8ff" onclick="toggleCeilInfo()">
+      <span class="btn-icon">&#8862;</span>
+      <span class="btn-label">CEILING INFO<span class="btn-sub">Clock &middot; planes &middot; where to look for the ISS</span></span>
+    </button>
     <div class="ctrl-sep"></div>
     <button class="btn" id="c-render" style="--btn-col:#7fd4ff" onclick="cycleRenderScale()">
       <span class="btn-icon">▣</span>
@@ -1026,7 +1301,6 @@ body.output-only.ceil-ui #ceil-panel input{cursor:pointer!important}
 const CFG = {
   FETCH_INTERVAL: 90000,
   ISS_INTERVAL:   5000,
-  BOX_DEG:        9,
   TRAIL_LEN:      55,
   VAPOR_LEN:      14,       // short contrail length in realistic mode
   ISS_TRAIL_LEN:  120,
@@ -1034,6 +1308,19 @@ const CFG = {
   STAR_BG:        750,
   OVERHEAD_KM:    25,
 };
+
+// ═══════════════════════════════════════════════════════
+// HTML ESCAPING
+// ═══════════════════════════════════════════════════════
+// Anything that originated at a third party and ends up inside an innerHTML
+// template has to go through this first. The sharpest case is locationName, which
+// comes from Nominatim's address fields — i.e. from OpenStreetMap, which anyone can
+// edit — so a place name is untrusted input that happens to arrive over HTTPS.
+// .toUpperCase() is not an escape. Aircraft registration, type and route codes from
+// adsb.lol are the same class of data.
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+)); }
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -1049,8 +1336,70 @@ const ctx = cv.getContext('2d');
 // time advances natively). The control window pushes lightweight state
 // (location, layer toggles, orientation) to it so they stay in sync.
 const IS_OUTPUT = new URLSearchParams(location.search).get('mode') === 'output';
+
+// ── postMessage ORIGIN POLICY ──
+// The Ceiling Mode handshake carries the observer's position (userLat/userLon) in
+// its state payload. Both listeners used to act on a message from ANY origin, and
+// both senders targeted '*' — so any page that got a handle on one of these windows
+// could have read that position out, or pushed a state of its own in.
+//
+// Strict same-origin everywhere, with one documented exception: an OPAQUE origin.
+// A file:// page reports location.origin as the string "null", and postMessage does
+// not merely drop that as a targetOrigin — it throws
+//   SyntaxError: Invalid target origin 'null'
+// so a naive location.origin target breaks Ceiling Mode outright wherever the origin
+// is opaque. Ceiling Mode is explicitly supported from file:// (there is no server to
+// serve an origin), so there we accept 'null' and target '*'.
+//
+// Detected by VALUE rather than by protocol: file: is the documented case, but data:,
+// blob: and sandboxed frames are opaque too, and a `protocol === 'file:'` test misses
+// all of them and then throws. There is no meaningful origin to check against in any
+// of those contexts; on every real origin the check is exact.
+const OPAQUE_ORIGIN = (location.origin === 'null' || !location.origin);
+const PM_TARGET     = OPAQUE_ORIGIN ? '*' : location.origin;
+function pmTrusted(e){
+  if(OPAQUE_ORIGIN) return e.origin === 'null' || e.origin === '' || e.origin === location.origin;
+  return e.origin === location.origin;
+}
 let outWin = null;          // reference to the opened output window (control side)
 let outChannel = null;      // BroadcastChannel when on http/localhost
+
+// ── ATTRIBUTION FOOTER HEIGHT ──
+// The footer wraps to a different number of lines depending on viewport width and
+// font metrics, and two fixed elements (the bottom HUD and, on touch, the control
+// sheet) have to sit clear of it. Publish its measured height as --legal-h so CSS
+// stacks against the real value instead of a guess. Removed entirely in Ceiling
+// Mode, where the footer is hidden and the variable stays 0.
+(function trackLegalHeight(){
+  const el=document.getElementById('legal');
+  if(!el) return;
+  if(IS_OUTPUT){ document.documentElement.style.setProperty('--legal-h','0px'); return; }
+  const publish=()=>{
+    const h=Math.ceil(el.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--legal-h', h+'px');
+  };
+  publish();
+  if('ResizeObserver' in window){ new ResizeObserver(publish).observe(el); }
+  else { window.addEventListener('resize', publish); }
+  // Web fonts change the metrics after load, which changes the wrap points. Measure
+  // on the frame AFTER fonts settle — fonts.ready can resolve before the reflow it
+  // triggers has been laid out, which left the value a couple of pixels short.
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>requestAnimationFrame(publish)).catch(()=>{});
+  }
+})();
+
+// ── AbortSignal.timeout polyfill ──
+// Used by every data fetch. It needs Safari 16.4+, and on older iOS the missing
+// method threw inside each fetch's catch — so the app silently showed no aircraft,
+// no ISS and no search results with nothing to explain why.
+if(typeof AbortSignal!=='undefined' && typeof AbortSignal.timeout!=='function'){
+  AbortSignal.timeout = function(ms){
+    const c=new AbortController();
+    setTimeout(()=>c.abort(new DOMException('TimeoutError','TimeoutError')), ms);
+    return c.signal;
+  };
+}
 
 // Lock zoom — prevent scroll wheel zoom and pinch zoom
 document.addEventListener('wheel', e => e.ctrlKey && e.preventDefault(), { passive: false });
@@ -1068,7 +1417,15 @@ let RENDER_MODE = 'auto';
 try{ const r=localStorage.getItem('overhead-render'); if(r) RENDER_MODE=r; }catch(e){}
 function effectiveDPR(){
   const dpr = window.devicePixelRatio || 1;
-  if(IS_OUTPUT || RENDER_MODE==='auto') return Math.min(dpr, 2);
+  // RENDER_MODE used to be ignored whenever IS_OUTPUT — but the ONLY control that
+  // sets it (#c-render) lives in the ceiling panel, which is output-only. So the
+  // button did nothing where it was reachable, while still writing
+  // 'overhead-render' to localStorage, which DID change the control window's
+  // rendering on its next load, with no UI there to show or undo it.
+  //
+  // The ceiling is exactly where render resolution matters (a 4K projector), so the
+  // setting now applies where it is offered.
+  if(RENDER_MODE==='auto') return Math.min(dpr, 2);
   const targetH = ({'1080':1080,'1440':1440,'2160':2160})[RENDER_MODE] || 1080;
   return Math.max(0.5, Math.min(targetH / (window.innerHeight||targetH), 4));
 }
@@ -1116,6 +1473,133 @@ setInterval(function(){
 }, 1000);
 
 let userLat = 51.5074, userLon = -0.1278, locationName = 'London, UK';
+
+// ═══════════════════════════════════════════════════════
+// LOCATION — provenance, confidence, acquisition
+// ═══════════════════════════════════════════════════════
+// Why any of this exists: the aircraft layer is acutely sensitive to observer error
+// while the astronomy is not. geoToScreen() turns a 5 km position error into a 27°
+// error for an overhead plane; the same 5 km moves a star by half a pixel. So a
+// coarse fix is harmless for the sky and actively misleading for traffic — which
+// means the app has to know how good its position is, and say so.
+const LOC_TARGET_M = 100;   // ≤100 m puts an overhead plane within ~0.6° of true
+const LOC = {
+  lat:userLat, lon:userLon, name:locationName,
+  accuracy:null,          // metres (browser's own estimate), or null when unknown
+  source:'default',       // how we got here — drives precedence below
+  confidence:'unknown',   // derived band: precise | approximate | coarse | unknown
+  isLive:false,           // true only when this is genuinely where the user is
+  userSet:false,          // chosen deliberately — background fixes may not override
+  ts:Date.now()
+};
+function confidenceOf(m){
+  if(m==null || !isFinite(m)) return 'unknown';
+  if(m<=LOC_TARGET_M) return 'precise';
+  if(m<=1000) return 'approximate';
+  return 'coarse';
+}
+function fmtAccuracy(m){
+  if(m==null || !isFinite(m)) return '';
+  return m<1000 ? `±${Math.round(m)} m` : `±${(m/1000).toFixed(1)} km`;
+}
+// PRECEDENCE — a position is never silently replaced by a less trustworthy one.
+// Without this, a late background GPS fix (which can easily be kilometres out on a
+// desktop) would quietly stomp an address the user deliberately typed.
+const LOC_RANK = { default:0, network:1, gps:2, saved:3, address:4, pluscode:5, manual:5 };
+function rankOf(rec){
+  let r = LOC_RANK[rec && rec.source] ?? 0;
+  // A GPS fix that actually hit target outranks a typed address; a coarse one doesn't.
+  if(rec && rec.source==='gps' && rec.accuracy!=null && rec.accuracy<=LOC_TARGET_M) r=4.5;
+  return r;
+}
+// Trust gate for the ISS overhead alert + notification prompt. Replaces the old
+// OH.precise boolean, which was only ever set during boot — so setting a location
+// by hand afterwards left alerts permanently disabled.
+function locTrusted(){
+  if(!LOC.isLive) return false;          // a teleported sky isn't where the user is
+  if(LOC.source==='default') return false;
+  return LOC.confidence!=='coarse';
+}
+
+// ── ACQUIRE ── One bounded refinement watch, replacing the two single-shot
+// getCurrentPosition calls. Browsers hand back a coarse wifi/network fix first
+// (1–5 km) then refine via GPS over 10–30 s; a single shot took the coarse one and
+// stopped. This resolves on the FIRST fix so boot is never held up, then keeps
+// upgrading the position in place through onFix until it hits target, plateaus, or
+// runs out of time.
+function acquireLocation(opts){
+  opts = opts || {};
+  const onFix = opts.onFix;
+  const targetM = opts.targetM || LOC_TARGET_M;
+  const deadlineMs = opts.deadlineMs || 45000;
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){ reject({code:0, message:'no geolocation'}); return; }
+    let watchId=null, best=null, settled=false, lastImprove=performance.now();
+    function stop(){
+      if(watchId!==null){ try{ navigator.geolocation.clearWatch(watchId); }catch(e){} watchId=null; }
+      clearInterval(plateau); clearTimeout(deadline);
+    }
+    // The deadline must SETTLE the promise, not just stop the timers. stop() alone
+    // left a never-resolving promise, and init() awaits this call — so if
+    // watchPosition fired neither callback the loader would sit at 10% forever.
+    // Rejecting with a timeout-shaped error routes it into the existing
+    // `err.code===3` retry branch in the boot path. (The watch's own timeout:30000
+    // should normally fire first; this is defence in depth.)
+    const deadline=setTimeout(()=>{
+      stop();
+      if(!settled){ settled=true; reject({code:3, message:'location acquisition timed out'}); }
+    }, deadlineMs);
+    // A desktop with no GPS radio returns one wifi-derived fix that never improves.
+    // Bail once accuracy flatlines rather than hold the watch open for the full
+    // deadline achieving nothing.
+    const plateau=setInterval(()=>{
+      if(best && performance.now()-lastImprove>10000) stop();
+    }, 2000);
+    watchId=navigator.geolocation.watchPosition(p=>{
+      const acc=(typeof p.coords.accuracy==='number')?p.coords.accuracy:Infinity;
+      // Only compare when we have a numeric accuracy to compare against. If the
+      // first fix reported a non-finite accuracy, best.accuracy is null — and
+      // `acc >= null*0.9` is `acc >= 0`, which is true for every subsequent fix, so
+      // the position could never refine again. A fix with a real number always beats
+      // one without.
+      if(best && best.accuracy!=null && acc>=best.accuracy*0.9) return;
+      best={lat:p.coords.latitude, lon:p.coords.longitude, accuracy:isFinite(acc)?acc:null};
+      lastImprove=performance.now();
+      try{ if(onFix) onFix(best); }catch(e){}
+      if(!settled){ settled=true; resolve(best); }  // unblock boot on the first fix
+      if(acc<=targetM) stop();                      // good enough — release the radio
+    }, err=>{
+      // An error arriving mid-watch must never discard a good fix already held.
+      if(!settled){ settled=true; stop(); reject(err); }
+    }, {enableHighAccuracy:true, maximumAge:0, timeout:30000});
+  });
+}
+// TIMEOUT only: one relaxed retry. A cached or network-derived fix, however rough,
+// is far better than silently falling back to the London default.
+function acquireCoarse(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){ reject({code:0}); return; }
+    navigator.geolocation.getCurrentPosition(
+      p=>resolve({lat:p.coords.latitude, lon:p.coords.longitude,
+                  accuracy:(typeof p.coords.accuracy==='number')?p.coords.accuracy:null}),
+      reject, {enableHighAccuracy:false, timeout:10000, maximumAge:600000});
+  });
+}
+// A background fix that ranks below the current position becomes an offer, not an
+// action. Shown once per page load so a refining watch can't spam the user.
+let _locOffer=null, _locOfferShown=false;
+function offerUpgrade(rec){
+  _locOffer=rec;
+  if(_locOfferShown) return;
+  _locOfferShown=true;
+  ohToast('GPS FIX AVAILABLE',
+    `Your browser places you at ${fmtAccuracy(rec.accuracy)||'an unknown accuracy'}. Tap to use it instead of the location you set.`,
+    '#7fd4ff',
+    ()=>{ const o=_locOffer; if(!o) return; _locOffer=null;
+          applyLocation(o.lat,o.lon,'Your location',
+            {source:o.source, accuracy:o.accuracy, night:false, geocode:true, userInitiated:true}); });
+}
+
 let skyTimeOffsetMs = 0; // ZENYTH sky-clock (ms). 0 = live. Teleport presets set this to the
                          // destination's local solar midnight; own coords & GPS stay live.
                          // Single seam for a future time-of-day / daylight model.
@@ -1149,7 +1633,14 @@ const PALETTES = {
   vivid:     { label:'Vivid',
     dome:[[0,'#061428'],[0.65,'#030d1e'],[0.9,'#051525'],[1,'#0a1f30']],
     wide:[[0,'#061428'],[0.7,'#030d1e'],[1,'#02060f']],
-    starSat:1.0, mwMul:1.3, mwCore:'195,205,250', mwWarm:'238,228,206', bortle:null },
+    // Was bortle:null. setPalette/applyCeilPalette both do `if(b){ BORTLE = b; }`, so
+    // a null left BORTLE at whatever the PREVIOUS preset installed — making this one
+    // load-order dependent: picked after Pitch Black it inherited Bortle 1 (dense
+    // field), but on the next load, restored from the same saved setting, it fell back
+    // to the declared default of 3 (sparser). zenSyncBortleBtn() was skipped too, so
+    // the SKY button kept showing the previous preset's number. Vivid is the punchy
+    // planetarium look, so it gets the pristine star density explicitly.
+    starSat:1.0, mwMul:1.3, mwCore:'195,205,250', mwWarm:'238,228,206', bortle:1 },
   // Built for the ceiling. A true #000 field throws no light back at the room, so
   // the projector's black is the ceiling's black and only the stars, planets and
   // Milky Way carry any glow. Paired with the most pristine star density (Bortle 1)
@@ -1175,13 +1666,16 @@ let sunScreen = null;  // v7: Sun's projected screen position + azimuth — powe
 let satList = [];      // simulated LEO satellite passes
 let depth3D = true;    // parallax star layers — far stars drift less than near ones
 let lastSatSpawn = 0;
+let satSpawnGap = 120000 + Math.random()*120000;  // wait until the next pass, drawn once per interval
+// Seeds the FIRST pass only. Without it the empty-list clause below re-fires every
+// frame after a pass expires, and the interval never gets to govern anything.
+let satSeeded = false;
 // PROJECTION MODE: 'dome' = azimuthal equidistant (hemisphere in a circle),
 // 'wide' = rectilinear/perspective wide-field that fills the whole rectangle.
 let projMode = 'wide';   // default: fill the projector
 let fovDeg = 100;        // wide-field vertical FOV — a natural "stand and look up" section (90–120 sensible; 150 crammed the whole sky in)
 let domeFov = 180;       // dome FOV: angular diameter mapped across the dome circle. 180 = full hemisphere (horizon at edge); smaller = zoom toward zenith
 let moonObj = null;
-let mwStars = []; // extra star sprinkle along the Milky Way band
 let projectorMode = false;
 // CEILING ORIENTATION (output window only). Projecting onto a ceiling needs the
 // image mirrored, because looking *up* reverses east/west: lying on your back
@@ -1199,6 +1693,10 @@ let ceilFlipH = false;
 let ceilFlipV = true;
 let ceilRot   = 0;   // compass rotation, degrees clockwise; turns the sky to match how the bed/room faces
 let ceilPalette = 'pitchblack';  // ceiling's own sky preset — defaults to the pure-black one built for projection
+// Corner readouts (clock, aircraft count, which way to look for the ISS, active
+// shower) drawn into the canvas so they land on the ceiling with everything else.
+// Toggleable because it is, unavoidably, extra light thrown at your ceiling.
+let ceilInfo = true;
 // The mirror above flips the whole canvas, which would flip every label with it.
 // Counter-flip each text draw about its own anchor: mirrored twice, the glyphs
 // come out upright while the sky geometry stays mirrored. Alignment/baseline are
@@ -1240,12 +1738,43 @@ let lastFrameTime = performance.now();
 let lastFetchTime = 0;
 let hovered = null, selected = null;
 let overheadAlert = null, overheadAlertTimer = null;
-const KM_PER_DEG = 111.0;
 
-window.addEventListener('resize', () => {
+// Debounced: a full six-function rebuild per resize event stalled the sky while a
+// window edge was dragged, and on a phone every orientation change and URL-bar
+// show/hide fires resize too. Canvas is resized immediately so nothing tears; the
+// expensive rebuild waits for the gesture to settle.
+// ── SKY REBUILD SCHEDULE ──
+// These all used to fire together on one 60 s tick, which showed as a whole-sky
+// stutter every minute — very visible on a static ceiling, and worse on a phone
+// where the Milky Way's canvas blur is expensive. Staggered by cost and by how
+// fast each thing actually moves: stars carry the sidereal rotation and stay on
+// 60 s; the galactic plane and the planets shift far too slowly to need it.
+let _skyRebuildsStarted=false;
+function startSkyRebuilds(){
+  // Called from exactly one of two mutually exclusive boot branches today, so it
+  // cannot double up — but a second call would install a duplicate set of intervals
+  // that nothing holds a handle to and nothing could ever clear.
+  if(_skyRebuildsStarted) return;
+  _skyRebuildsStarted=true;
+  setInterval(()=>{ buildStars(); buildMoon(); buildSun(); }, 60000);
+  setInterval(()=>{ buildMeteorShowers(); }, 120000);
+  setTimeout(()=>{ setInterval(()=>{ buildPlanets(); }, 300000); }, 20000);
+  setTimeout(()=>{ setInterval(()=>{ buildMilkyWay(); }, 300000); }, 40000);
+}
+
+let _resizeT=null;
+function onViewportResize(){
   sizeCanvas();
-  buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
-});
+  clearTimeout(_resizeT);
+  _resizeT=setTimeout(()=>{
+    sizeCanvas();
+    buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  }, 160);
+}
+window.addEventListener('resize', onViewportResize);
+window.addEventListener('orientationchange', onViewportResize);
+// visualViewport tracks mobile Safari's URL-bar collapse, which `resize` misses.
+if(window.visualViewport) window.visualViewport.addEventListener('resize', onViewportResize);
 
 // ═══════════════════════════════════════════════════════
 // CLOCK
@@ -1275,17 +1804,52 @@ function elevAtScreen(x, y) {
   return 90 - za;
 }
 
+// Is a projected point close enough to the viewport to be worth drawing?
+//
+// onScreen answers a different question: "is this above the horizon?" That is an
+// honest astronomical fact and the only thing the flag ever promised, but it is NOT
+// the same as "will this appear on the ceiling", which is what the trail, velocity
+// and heading guards actually need. In wide mode at 1920x1080 with fovDeg=100 the
+// half-diagonal is ~1101 px, so everything below about 20 deg elevation is already
+// outside the frame while still being legitimately above the horizon; below about
+// 11.6 deg it is clamped to the OFFSCREEN_R ring. Guarding on onScreen there records
+// a cluster of ring-bunched trail points, and the first segment drawn when the object
+// finally climbs into view is stroked from that ring right across the viewport.
+//
+// The margin deliberately keeps points a little OUTSIDE the frame, so a track
+// entering the view still has a correct leading segment to draw from. Beyond it
+// there is nothing on screen to join up to.
+function inFrame(x, y){
+  if(!isFinite(x) || !isFinite(y)) return false;
+  const m = (Math.max(W, H) || 1000) * 0.25;
+  return x >= -m && x <= W + m && y >= -m && y <= H + m;
+}
+
 function altAzToScreen(altDeg, azRad) {
   // ceilRot is the Ceiling Mode compass (0 everywhere else), rotating the whole
   // sky in azimuth. Applied here rather than as a canvas transform so the sky
   // turns while labels stay upright.
-  const adjAz = azRad - ((orientationHeading + ceilRot) * Math.PI/180);
+  // ceilRot is CEILING-LOCAL and must only ever rotate the projected sky. It was
+  // applied unguarded here, but loadCeilSettings() runs unconditionally at the top of
+  // init() — before the IS_OUTPUT branch — so the CONTROL window also read
+  // `overhead-ceiling` and picked up the compass value. Setting the ceiling compass
+  // to 90° therefore rotated the main page's entire sky by 90° on its next load,
+  // while the SCREEN ORIENTATION dial still read "N · 0°" and nothing in that UI
+  // could undo it. Every other ceiling-local value is guarded at its point of use
+  // (ceilFlipH/V in orientedCorners, ceilPalette behind if(IS_OUTPUT), ceilInfo
+  // behind PM); this one was the exception.
+  const rot = orientationHeading + (IS_OUTPUT ? ceilRot : 0);
+  const adjAz = azRad - (rot * Math.PI/180);
   if(projMode==='dome'){
     // Azimuthal equidistant: zenith centre, horizon on a circle. domeFov is the
     // angular diameter that fills the circle — zenith angle (domeFov/2) lands on
     // the edge. domeFov=180 → horizon at edge (full hemisphere); smaller zooms in.
     const r = ((90 - Math.max(0,altDeg)) / (domeFov/2)) * DR();
-    return { x: W/2 + Math.sin(adjAz)*r, y: H/2 - Math.cos(adjAz)*r, altDeg, onScreen:true };
+    // onScreen means "above the horizon", and it was hardcoded true here — so a
+    // below-horizon object in dome mode claimed to be visible while being drawn
+    // pinned to the rim. Report it honestly; callers now rely on this flag.
+    const dx = W/2 + Math.sin(adjAz)*r, dy = H/2 - Math.cos(adjAz)*r;
+    return { x: dx, y: dy, altDeg, onScreen:(altDeg>0), renderable:(altDeg>0 && inFrame(dx, dy)) };
   }
   // ── WIDE-FIELD (rectilinear) ── looking straight up; zenith at centre.
   // Treat the sky as a unit hemisphere; the viewer looks up the +Z axis.
@@ -1298,17 +1862,47 @@ function altAzToScreen(altDeg, azRad) {
   // We map zenith angle (90-alt) through a perspective lens.
   const za = (90-Math.max(0,altDeg))*Math.PI/180;       // 0 at zenith
   const f = (Math.min(W,H)*0.5) / Math.tan((fovDeg/2)*Math.PI/180);
-  // Guard: anything at/below horizon (za≥90°) projects to infinity — clamp out.
-  if(za >= Math.PI/2 - 0.001) {
-    return { x: W/2 + vx*1e6, y: H/2 - vy*1e6, altDeg, onScreen:false };
-  }
-  const rproj = f * Math.tan(za);
+  // ── BOUNDED OFF-SCREEN PROJECTION ──
+  // A rectilinear projection sends r = f·tan(za) to infinity as za → 90°, so there
+  // is no meaningful screen position at or below the horizon. This used to return
+  // direction × 1e6 as a sentinel, paired with onScreen:false — but NOTHING read
+  // onScreen (3 writes, 0 reads), so those ±1e6 coordinates flowed into velocity
+  // arithmetic, trail buffers and stroked paths.
+  //
+  // That was mostly latent until geoToScreen() was corrected to use real spherical
+  // geometry: before, its elevation could never go negative, so aircraft and the ISS
+  // never reached this branch. Now they reach it constantly — most of the ISS orbit
+  // and every distant aircraft is below the horizon.
+  //
+  // Clamp instead of sentinel. OFFSCREEN_R is a full viewport diagonal from centre,
+  // which is comfortably outside the frame (and outside the corner-pin quad, which
+  // only ever maps the canvas rectangle inward), so nothing renders — but every
+  // downstream number stays finite and small enough to do arithmetic on.
+  // Must never be 0: a zero radius would place every below-horizon object exactly at
+  // screen centre — the most visible spot on the ceiling. W/H can legitimately be 0
+  // before the first sizeCanvas() (a hidden or zero-size window), so fall back
+  // through the viewport and finally to a fixed value.
+  const OFFSCREEN_R = Math.hypot(W,H)
+    || Math.hypot(window.innerWidth||0, window.innerHeight||0)
+    || 1e4;
   const ang = Math.atan2(vx, vy);
+  if(za >= Math.PI/2 - 0.001) {
+    return {
+      x: W/2 + Math.sin(ang)*OFFSCREEN_R,
+      y: H/2 - Math.cos(ang)*OFFSCREEN_R,
+      altDeg, onScreen:false, renderable:false
+    };
+  }
+  // Also cap the near-horizon case: at za = 89.9° the true rproj is ~570× the focal
+  // length, which is already far off-screen and just as unusable for arithmetic.
+  const rproj = Math.min(f * Math.tan(za), OFFSCREEN_R);
+  const wx = W/2 + Math.sin(ang)*rproj, wy = H/2 - Math.cos(ang)*rproj;
   return {
-    x: W/2 + Math.sin(ang)*rproj,
-    y: H/2 - Math.cos(ang)*rproj,
+    x: wx,
+    y: wy,
     altDeg,
-    onScreen: (altDeg>0)
+    onScreen: (altDeg>0),
+    renderable: (altDeg>0 && inFrame(wx, wy))
   };
 }
 
@@ -1320,7 +1914,22 @@ function geoToScreen(lat, lon, altM=10000) {
   const y2=Math.sin(dLon)*Math.cos(lat2);
   const x2=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
   const az=Math.atan2(y2,x2);
-  const altDeg=distM<1?90:Math.atan2(altM,distM)*180/Math.PI;
+  // ── ELEVATION (with Earth curvature) ──
+  // This was atan2(altM, distM): a flat-earth approximation whose arguments are
+  // both always positive, so it could never return a negative angle and NOTHING
+  // could ever be below the horizon. Close enough for an aircraft a few tens of km
+  // away; badly wrong for the ISS, which is only visible within ~2200 km and spends
+  // most of its orbit below the horizon. The code downstream always expected
+  // negatives — the ISS renderer fades out between 0° and −15°, and the corner
+  // readout has an "ISS BELOW HORIZON" branch — neither of which could ever run.
+  //
+  // Observer on a sphere of radius R, object at radius R+altM, separated by central
+  // angle theta: elevation = atan2((R+h)·cos θ − R, (R+h)·sin θ). Goes negative
+  // exactly at the true geometric horizon.
+  const theta = distM / R;                 // central angle (radians)
+  const ro    = R + altM;                  // object's distance from Earth's centre
+  const altDeg = distM < 1 ? 90
+    : Math.atan2(ro*Math.cos(theta) - R, ro*Math.sin(theta)) * 180/Math.PI;
   return {...altAzToScreen(altDeg,az), az, distM};
 }
 
@@ -1558,20 +2167,9 @@ function buildMilkyWay() {
     });
   } else { window._mwLayer=null; }
 
-  // Star sprinkle for ambient: a few faint stars clustered along the band
-  mwStars=[];
-  if(SHOW.ambient){
-    let sd=7;
-    milkyWayPoints.forEach(mp=>{
-      for(let k=0;k<3;k++){
-        sd=(sd*1664525+1013904223)&0xffffffff; const u=(sd>>>0)/0xffffffff;
-        sd=(sd*1664525+1013904223)&0xffffffff; const v=(sd>>>0)/0xffffffff;
-        sd=(sd*1664525+1013904223)&0xffffffff; const w=(sd>>>0)/0xffffffff;
-        mwStars.push({x:mp.x+(u-0.5)*120*mp.bright, y:mp.y+(v-0.5)*120*mp.bright,
-                      r:0.4+w*0.7, a:0.15+w*0.35*mp.bright});
-      }
-    });
-  }
+  // (An ambient "star sprinkle" list was built here — ~540 objects and 1,620 PRNG
+  //  steps per rebuild — but nothing ever read it. The band's glitter comes from the
+  //  grain pass baked into _mwLayer above, so the list was pure waste and is gone.)
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1662,12 +2260,29 @@ function buildMeteorShowers() {
 }
 
 // Spawn meteor streaks from active shower radiants
+// ── FRAME-RATE INDEPENDENCE ──
+// Everything below used to advance once per FRAME with constants tuned for 60 Hz, so
+// the sky ran at double speed on a 120 Hz display and crawled in a throttled tab —
+// meteors appeared twice as often, moved twice as fast and burned out twice as
+// quickly. `frames60` converts an elapsed time into "how many 60 Hz frames was that",
+// which keeps every existing constant meaning exactly what it did at 60 Hz.
+let frameDt = 1000/60;                       // ms since the previous frame (set in simulate)
+// Simulation clock: the sum of every CLAMPED frameDt, which is the clock the sky
+// actually moves on. Wall-clock `now` is not interchangeable with it — in a throttled
+// tab a real dt of ~500 ms is clamped to 100, so anything aged on `now` runs 5x faster
+// than the thing it belongs to. The ion train collapsed to ~2 points that way: its head
+// advanced on frameDt while its tail expired on wall time.
+let simClock = 0;
+function frames60(){ return frameDt / (1000/60); }
+
 function spawnMeteors() {
   if(!SHOW.meteors) return;
+  const f60 = frames60();
   meteorShowers.forEach(sh=>{
     if(!sh.visible||sh.altDeg<5) return;
-    // Rate: ZHR scaled by activity, ~1 per (3600/zhr) seconds → per frame at 60fps
-    const spawnChance=sh.zhr*sh.activity/3600/60;
+    // Rate: ZHR scaled by activity, ~1 per (3600/zhr) seconds. Expressed per 60 Hz
+    // frame, then scaled by how much time this frame actually covered.
+    const spawnChance=sh.zhr*sh.activity/3600/60*f60;
     if(Math.random()<spawnChance*3) { // ×3 for visibility
       const angle=Math.random()*Math.PI*2;
       const speed=2+Math.random()*4;
@@ -1683,7 +2298,7 @@ function spawnMeteors() {
     }
   });
   // Sporadic meteors (ambient): a random shooting star every ~40s from anywhere
-  if(SHOW.ambient && Math.random() < 1/(40*60)){
+  if(SHOW.ambient && Math.random() < f60/(40*60)){
     const ang=Math.random()*Math.PI*2, rr=Math.random()*DR()*0.8;
     const dir=Math.random()*Math.PI*2, spd=3+Math.random()*5;
     const ion=spd>5 && Math.random()<0.5;
@@ -1699,29 +2314,67 @@ function spawnMeteors() {
 // ═══════════════════════════════════════════════════════
 // ISS ORBITAL PATH
 // ═══════════════════════════════════════════════════════
+// Cached wrapper around buildISSOrbitPath(). Invalidated by time (1 s) and by the
+// inputs that actually change the track's shape on screen: the observer's position,
+// the projection, the field of view and the ceiling compass. Anything that alters
+// those is picked up on the very next frame rather than a second later.
+let _issPath=null, _issPathAt=0, _issPathKey='';
+function issOrbitPath(now){
+  if(!iss) return [];
+  const key=[projMode,fovDeg,domeFov,orientationHeading,ceilRot,domeScale,
+             userLat.toFixed(3),userLon.toFixed(3),
+             iss.lat.toFixed(2),iss.lon.toFixed(2)].join('|');
+  if(_issPath && key===_issPathKey && (now-_issPathAt)<1000) return _issPath;
+  _issPath=buildISSOrbitPath(); _issPathAt=now; _issPathKey=key;
+  return _issPath;
+}
 function buildISSOrbitPath() {
   if(!iss) return [];
   // ISS orbital period ~92 min, inclination ~51.6°
   // Propagate ground track forward 90 minutes using simplified circular orbit
+  // ── PROPER CIRCULAR-ORBIT GROUND TRACK ──
+  // Latitude on an inclined circular orbit OSCILLATES: sin φ = sin i · sin u, where
+  // u is the argument of latitude (angle travelled from the ascending node). It is
+  // bounded by ±i and never leaves it.
+  //
+  // This used to advance latitude at the CONSTANT rate cos(i)·ω and wrap it with
+  // `%180` — a sawtooth, not a reflection. Over the 90-minute projection that
+  // accumulated ~219° of "latitude": the drawn track ramped past the ISS's real
+  // ±51.6° limit, hit the pole, teleported to the opposite pole and climbed again.
+  // It also always went north, so half of all passes were drawn travelling the wrong
+  // way. The longitude term additionally divided by cos(lat) using the FIXED starting
+  // latitude, so its rate was wrong for the whole projection.
   const path=[];
   const incl=51.6*Math.PI/180;
-  const period=92*60*1000; // ms
-  const now=performance.now();
-  // Current lat/lon as starting point
-  let lat=iss.lat*Math.PI/180;
-  let lon=iss.lon*Math.PI/180;
-  // Angular velocity: 360° / 92min in rad/ms
-  const omega=2*Math.PI/period;
-  // Earth rotation: 360° / 24h in rad/ms
-  const earthOmega=2*Math.PI/(24*3600*1000);
-  const steps=90; // one point per minute
+  const period=92*60*1000;                 // ms
+  const omega=2*Math.PI/period;            // orbital angular rate, rad/ms
+  const earthOmega=2*Math.PI/(24*3600*1000); // Earth rotation, rad/ms
+  const lat0=iss.lat*Math.PI/180;
+  const sinI=Math.sin(incl);
+
+  // Recover the argument of latitude from the current latitude. asin gives the
+  // ascending solution; the descending half of the orbit is its supplement. A single
+  // position cannot distinguish the two, so fetchISS() records the direction of
+  // travel; default to ascending before two samples exist.
+  const ratio=Math.max(-1, Math.min(1, Math.sin(lat0)/sinI));
+  let u0=Math.asin(ratio);
+  if(iss.ascending===false) u0=Math.PI-u0;
+
+  // Longitude relative to the ascending node, for the same u. Anchoring on the
+  // CURRENT position means the node's absolute longitude is never needed.
+  const nodeLon=(u)=>Math.atan2(Math.cos(incl)*Math.sin(u), Math.cos(u));
+  const a0=nodeLon(u0);
+
+  const steps=90;                          // one point per minute
   for(let i=0;i<=steps;i++) {
-    const dt=i*60*1000; // ms ahead
-    // Simplified: advance along great circle at inclination
-    const dlat=Math.cos(incl)*omega*dt;
-    const dlon=Math.sin(incl)*omega*dt/Math.cos(lat)-earthOmega*dt;
-    const newLat=((iss.lat+dlat*180/Math.PI+90)%180)-90;
-    const newLon=((iss.lon+dlon*180/Math.PI+540)%360)-180;
+    const dt=i*60*1000;
+    const u=u0+omega*dt;
+    const newLat=Math.asin(Math.max(-1,Math.min(1, sinI*Math.sin(u))))*180/Math.PI;
+    // Unwrap the node-relative longitude so the track doesn't jump at ±180°, then
+    // subtract Earth's rotation underneath the orbit.
+    let da=nodeLon(u)-a0;
+    da-=2*Math.PI*Math.round(da/(2*Math.PI) - omega*dt/(2*Math.PI));
+    const newLon=(((iss.lon + (da-earthOmega*dt)*180/Math.PI)%360)+540)%360-180;
     const p=geoToScreen(newLat,newLon,408000);
     if(p&&p.altDeg>-30) path.push({...p,frac:i/steps});
   }
@@ -1756,7 +2409,12 @@ function buildMoon(){
   const lamSun=(280.460+36000.771*T+1.915*Math.sin(M*rad))*rad;
   const elong=Math.acos(Math.cos(bet)*Math.cos(lam-lamSun));
   const illum=(1-Math.cos(elong))/2;
-  moonObj={x:p.x,y:p.y,altDeg:p.altDeg,visible:p.altDeg>0,illum,waxing:Math.sin(lam-lamSun)<0};
+  // Waxing = the Moon is EAST of the Sun, i.e. 0 < (λ☾ − λ☉) < 180°, i.e. sin > 0.
+  // This was `< 0`, which flipped the crescent to the wrong limb. Only reachable on
+  // the fallback path in draw() when sunScreen is still null (the first frame before
+  // buildSun runs) — the normal path derives the direction from the Sun's real
+  // position — but it was wrong whenever it was reached.
+  moonObj={x:p.x,y:p.y,altDeg:p.altDeg,visible:p.altDeg>0,illum,waxing:Math.sin(lam-lamSun)>0};
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1796,8 +2454,22 @@ function spawnSatellite(now){
 }
 function drawSatellites(now){
   if(!SHOW.sats) return;
-  if((satList.length===0 && now>12000) || now-lastSatSpawn > 120000+Math.random()*120000){
-    spawnSatellite(now); lastSatSpawn=now;
+  // The 120–240s threshold used to be re-drawn on EVERY frame, so the effective wait
+  // was the running minimum of thousands of draws — measured mean 121.7s with a
+  // 120–125s range, instead of the intended uniform 120–240s (mean 180s). Satellites
+  // appeared ~50% too often and at a near-fixed cadence. Draw it once per interval.
+  // The empty-list clause is a ONE-TIME seed, not a standing condition. It used to
+  // read satList.length===0, which is true on every frame after a pass expires — and
+  // since the filter that expires passes runs *below* this check, the very next frame
+  // spawned another one. Drawing satSpawnGap once per interval therefore fixed nothing:
+  // the interval was never consulted, and passes still ran back-to-back.
+  //
+  // Consequence, accepted deliberately: the sky goes from "a satellite almost always
+  // overhead" to the documented uniform 120-240s cadence (mean 180s), which is what a
+  // real sky does.
+  if((!satSeeded && now>12000) || now-lastSatSpawn > satSpawnGap){
+    spawnSatellite(now); lastSatSpawn=now; satSeeded=true;
+    satSpawnGap = 120000 + Math.random()*120000;   // next wait, chosen once
   }
   satList=satList.filter(s=>now-s.t0<s.dur);
   satList.forEach(s=>{
@@ -1826,8 +2498,8 @@ function drawSatellites(now){
 //      the visitor's IP from the upstreams, and lets the edge serve many nearby
 //      users from a single upstream call.
 //   2. The local-dev proxy (proxy.js) so `localhost` behaves like production.
-//   3. A direct call as a last resort, so the app still works from file:// or a
-//      plain static host with no proxy (the upstreams send permissive CORS).
+// There is no third hop. The direct-to-upstream fallback was removed deliberately —
+// see the note inside proxiedCandidates() for what that buys and what it costs.
 // Each attempt is time-boxed so a stalled connection can never freeze boot.
 // (The aircraft feed runs this same ladder inside a Worker — see buildPlaneSources.)
 function proxiedCandidates(upstreamUrl){
@@ -1839,16 +2511,28 @@ function proxiedCandidates(upstreamUrl){
   const isLocal=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:');
   const out=[`${origin}/api/proxy?url=${enc}`]; // 1. Vercel proxy (primary live, edge-cached)
   if(isLocal) out.push(`http://localhost:3001/?url=${enc}`); // 2. local dev proxy — local only
-  out.push(upstreamUrl);                        // 3. direct fallback (upstream sends CORS)
+  // There is deliberately NO third hop to the raw upstream. Every candidate here is
+  // a proxy, which is what makes the privacy policy true as written: the upstream
+  // providers never see a visitor's IP, and — for the aircraft and geocoding calls,
+  // which carry the user's coordinates — never see their location either. The cost
+  // is that live data needs the proxy: on file:// or a static host with no
+  // serverless function there is no live feed, and the UI says so rather than
+  // failing silently. Offline astronomy is unaffected.
   return out;
 }
+// Has ANY proxy hop ever succeeded this session? With the direct fallback gone, a
+// proxy that has never once answered almost certainly isn't there — file://, or a
+// static host with no serverless function — rather than being transiently down.
+// That distinction is what lets the UI say something useful instead of looping on
+// a generic "network issue" forever.
+let proxyEverWorked=false;
 async function fetchAllowlistedJSON(upstreamUrl, timeoutMs){
   for(const u of proxiedCandidates(upstreamUrl)){
     try{
       const r=await fetch(u,{signal:AbortSignal.timeout(timeoutMs)});
       if(!r.ok) continue;
       const j=await r.json();
-      if(j) return j;
+      if(j){ proxyEverWorked=true; return j; }
     }catch(_){}
   }
   return null;
@@ -1866,12 +2550,23 @@ async function reverseGeocode(lat, lon){
 // ═══════════════════════════════════════════════════════
 // FETCH — ISS
 // ═══════════════════════════════════════════════════════
+// Overlap guard, same shape as planeInFlight. This runs on a 5s interval with a 10s
+// fetch timeout, so on a slow connection each call outlives the next tick and the
+// requests stack up — every one of them holding a socket and, on a bad link, making
+// the congestion worse.
+let issInFlight = false;
 async function fetchISS() {
+  if(issInFlight) return;
+  issInFlight = true;
+  try {
   const d=await fetchAllowlistedJSON('https://api.wheretheiss.at/v1/satellites/25544', 10000);
   if(!d || typeof d.latitude!=='number'){
     // Offline / slow / blocked: fall back to an estimated position so the dot
     // still appears, and flag it as EST rather than LIVE.
-    if(!iss) iss={lat:userLat+5,lon:userLon+5,alt:408,vel:27600,vx:0,vy:0,trail:[],lastUpdate:performance.now()};
+    // hasRealFix marks this as a PLACEHOLDER: lat/lon here are invented (the user's
+    // position offset by 5 deg), so the first genuine fetch must not derive a direction
+    // of travel by differencing against them.
+    if(!iss) iss={lat:userLat+5,lon:userLon+5,alt:408,vel:27600,vx:0,vy:0,trail:[],lastUpdate:performance.now(),hasRealFix:false};
     document.getElementById('s-iss').textContent='EST';
     return;
   }
@@ -1883,10 +2578,42 @@ async function fetchISS() {
   const np=geoToScreen(d.latitude,d.longitude,d.altitude*1000);
   const op=geoToScreen(iss.lat,iss.lon,iss.alt*1000);
   const dt=now-iss.lastUpdate;
-  if(dt>500){iss.vx=(np.x-op.x)/dt;iss.vy=(np.y-op.y)/dt;}
+  // Screen velocity is only meaningful when BOTH samples are real on-screen
+  // positions. On the fetch where the ISS crosses the horizon one of them is the
+  // bounded off-screen point, and differencing the two produced a velocity that
+  // flung the marker off-screen within a second — losing exactly the visible pass
+  // the 0°→−15° fade exists to show. Zero it instead so the marker sits at its
+  // true projected position until two good samples are available.
+  if(dt>500){
+    // renderable, not onScreen: a sample can be honestly above the horizon and still
+    // be clamped to the OFFSCREEN_R ring (wide mode puts everything below ~11.6 deg
+    // there), and differencing a ring point against a real one gives the same wild
+    // velocity this guard was added to prevent.
+    if(np.renderable && op.renderable){ iss.vx=(np.x-op.x)/dt; iss.vy=(np.y-op.y)/dt; }
+    else { iss.vx=0; iss.vy=0; }
+  }
+  // Which way the ISS is travelling in latitude — needed by buildISSOrbitPath() to
+  // know whether it is ascending or descending, which a single position cannot say.
+  //
+  // Two guards. First, only difference against a REAL previous fix: the offline
+  // placeholder above sits at userLat+5, so comparing the first genuine latitude
+  // against it produced a direction derived entirely from the user's own position.
+  // Second, ignore changes below a noise floor. At a 5 s poll the ISS moves ~0.25 deg
+  // of latitude mid-orbit but approaches zero at the +-51.6 deg turnaround, where a
+  // bare >= comparison flaps between ascending and descending on jitter alone and
+  // flips the whole predicted ground track. Holding the last known direction through
+  // the turnaround is correct: it genuinely has not reversed until it has.
+  if(iss.hasRealFix){
+    const dLat = d.latitude - iss.lat;
+    if(Math.abs(dLat) > 0.02) iss.ascending = (dLat >= 0);
+  }
+  iss.hasRealFix = true;
   iss.lat=d.latitude;iss.lon=d.longitude;iss.alt=d.altitude;iss.vel=d.velocity;
   iss.lastUpdate=now;
   document.getElementById('s-iss').textContent='LIVE';
+  } finally {
+    issInFlight = false;
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1933,7 +2660,7 @@ let planeWorker=null, planeReqId=0;
   try{
     if(typeof Worker==='undefined'||typeof Blob==='undefined') return;
     const code=`self.onmessage=async function(e){
-      var d=e.data, out=null, throttled=false;
+      var d=e.data, out=null, ok=false, throttled=false;
       for(var i=0;i<d.sources.length;i++){
         var s=d.sources[i];
         try{
@@ -1945,10 +2672,13 @@ let planeWorker=null, planeReqId=0;
           if(!r.ok) continue;
           var js=await r.json();
           var ac=js.ac||js.aircraft||[];
-          if(ac&&ac.length>0){ out=ac; break; }
+          // An empty array is a SUCCESS: "no traffic in range" is a real answer, not
+          // a failed request. Testing ac.length>0 here meant a quiet sky fell through
+          // to the next source and ultimately to the backoff path.
+          if(Array.isArray(ac)){ out=ac; ok=true; break; }
         }catch(_){}
       }
-      self.postMessage({id:d.id, aircraft:out, throttled:throttled});
+      self.postMessage({id:d.id, aircraft:out, ok:ok, throttled:throttled});
     };`;
     const url=URL.createObjectURL(new Blob([code],{type:'application/javascript'}));
     planeWorker=new Worker(url);
@@ -1958,8 +2688,7 @@ let planeWorker=null, planeReqId=0;
 
 function buildPlaneSources(){
   // 150 nm radius (down from 250) — a narrower query is lighter on adsb.lol and
-  // still covers the whole visible sky. Deliberately independent of CFG.BOX_DEG,
-  // which is used elsewhere for the sky-box geometry.
+  // still covers the whole visible sky.
   const nm=150;
   // Coarsen coordinates to 1 dp (~11 km) FOR THE adsb.lol URL ONLY. A wide-radius
   // aircraft query doesn't need finer, and it means every user in a region shares
@@ -1979,21 +2708,30 @@ function buildPlaneSources(){
     {url:`${origin}/api/proxy?url=${enc}`},         // 1. Vercel proxy (primary live, edge-cached)
   ];
   if(isLocal) sources.push({url:`http://localhost:3001/?url=${enc}`}); // 2. local dev proxy — local only
-  sources.push({url:base});                         // 3. direct (adsb.lol sends CORS)
+  // No direct hop. This request carries the user's coordinates, so falling back to
+  // the raw upstream would hand adsb.lol both their IP and their position — the
+  // exact thing the proxy exists to prevent. See proxiedCandidates().
   return sources;
 }
 function fetchPlanesViaWorker(sources){
-  // Resolves {aircraft:array|null, throttled:bool} so fetchPlanes() can tell a
-  // 420/429 throttle apart from a plain empty/failed cycle.
+  // Resolves the three-state result {ok, aircraft, throttled}:
+  //   ok:true             — a source answered and its JSON parsed to an array
+  //                         (which may legitimately be empty)
+  //   throttled:true      — upstream returned 420/429
+  //   ok:false, !throttled— nothing usable came back
+  // Overloading null/empty-array for both "no traffic" and "no response" was the bug.
   return new Promise(resolve=>{
     const id=++planeReqId;
-    const to=setTimeout(()=>{ cleanup(); resolve({aircraft:null,throttled:false}); }, 20000);
-    function onMsg(e){ if(e.data&&e.data.id===id){ cleanup(); resolve({aircraft:e.data.aircraft||null, throttled:!!e.data.throttled}); } }
+    const fail={ok:false, aircraft:null, throttled:false};
+    const to=setTimeout(()=>{ cleanup(); resolve(fail); }, 20000);
+    function onMsg(e){ if(e.data&&e.data.id===id){ cleanup(); resolve({
+      ok:!!e.data.ok, aircraft:e.data.aircraft||null, throttled:!!e.data.throttled}); } }
     function cleanup(){ clearTimeout(to); planeWorker.removeEventListener('message',onMsg); }
     planeWorker.addEventListener('message',onMsg);
-    try{ planeWorker.postMessage({id, sources}); }catch(err){ cleanup(); resolve({aircraft:null,throttled:false}); }
+    try{ planeWorker.postMessage({id, sources}); }catch(err){ cleanup(); resolve(fail); }
   });
 }
+// Same three-state contract as fetchPlanesViaWorker: {ok, aircraft, throttled}.
 async function fetchPlanesInline(sources){
   for(const s of sources){
     try{
@@ -2001,37 +2739,56 @@ async function fetchPlanesInline(sources){
       // 420/429 = upstream throttling us. Stop the cascade immediately (don't fall
       // through to the direct adsb.lol hop, whose error responses lack CORS headers
       // and spam the console) and signal "throttled" so fetchPlanes() backs off.
-      if(r.status===420||r.status===429) return {throttled:true};
+      if(r.status===420||r.status===429) return {ok:false, aircraft:null, throttled:true};
       if(!r.ok) continue;
       const js=await r.json();
       const ac=js.ac||js.aircraft||[];
-      if(ac&&ac.length>0) return ac;
+      // Empty array = success (no traffic in range), not a failure. See the Worker.
+      if(Array.isArray(ac)) return {ok:true, aircraft:ac, throttled:false};
     }catch{}
   }
-  return null;
+  return {ok:false, aircraft:null, throttled:false};
 }
+// ── SELF-SCHEDULING AIRCRAFT FEED ──
+// fetchPlanes used to be driven by setInterval(90s) at two boot sites AND schedule
+// its own setTimeout on failure. planeInFlight stopped the two overlapping, but the
+// interval kept firing regardless of the backoff — so the real request floor was 90s
+// no matter what planeBackoffMs said, and each failure could leave another pending
+// timeout behind, accumulating parallel retry chains. The intervals are gone; the
+// feed now schedules itself through this one handle, which is always cleared before
+// being reset, so exactly one run can ever be pending.
+let planeTimer=null;
+let planeNextDelayMs=CFG.FETCH_INTERVAL;   // drives the on-screen countdown
+function schedulePlaneFetch(delayMs){
+  if(planeTimer!==null){ clearTimeout(planeTimer); planeTimer=null; }
+  planeNextDelayMs=delayMs;
+  planeTimer=setTimeout(()=>{ planeTimer=null; fetchPlanes(); }, delayMs);
+}
+
 async function fetchPlanes() {
-  // Overlap guard: a backoff retry must never stack with the regular 90s
-  // setInterval tick. If a fetch is already awaiting the network, skip this call.
+  // Overlap guard, kept as belt-and-braces: a manual refresh must never stack with
+  // an already-running cycle.
   if(planeInFlight) return;
   planeInFlight=true;
+  let nextDelay=CFG.FETCH_INTERVAL;
   try{
   const sources=buildPlaneSources();
-  let aircraft=null, throttled=false;
+  let ok=false, aircraft=null, throttled=false;
   if(planeWorker){
     const w=await fetchPlanesViaWorker(sources);
-    aircraft=w.aircraft; throttled=w.throttled;
-    // If the worker came back empty (and wasn't throttled), try inline as a
-    // belt-and-braces backup.
-    if((!aircraft||!aircraft.length) && !throttled){
+    ok=w.ok; aircraft=w.aircraft; throttled=w.throttled;
+    // Only retry inline when the worker got nothing usable. A successful empty
+    // array must NOT trigger a retry — that was the old bug, and at a remote
+    // dark-sky site it drove every cycle down to the direct upstream hop.
+    if(!ok && !throttled){
       const inl=await fetchPlanesInline(sources);
-      if(inl&&inl.throttled) throttled=true; else aircraft=inl;
+      ok=inl.ok; aircraft=inl.aircraft; throttled=inl.throttled;
     }
   } else {
     const inl=await fetchPlanesInline(sources);
-    if(inl&&inl.throttled) throttled=true; else aircraft=inl;
+    ok=inl.ok; aircraft=inl.aircraft; throttled=inl.throttled;
   }
-  if(!aircraft||!aircraft.length){
+  if(!ok){
     lastFetchTime=performance.now();
     // Exponential backoff so sustained failures (esp. 420/429) don't hammer the
     // upstream. A throttle skips the 8s start and jumps to ≥60s; every failure
@@ -2039,12 +2796,23 @@ async function fetchPlanes() {
     if(throttled && planeBackoffMs<60000) planeBackoffMs=60000;
     const wait=planeBackoffMs;
     planeBackoffMs=Math.min(planeBackoffMs*2, 300000);
-    setStatus(`AIRCRAFT FEED: ${throttled?'rate-limited':'network issue'} — retry in ${Math.round(wait/1000)}s`);
-    setTimeout(fetchPlanes, wait);
-    return;
+    // Distinguish "the proxy is missing on this host" from "the network hiccuped".
+    // Without the direct fallback, the former is permanent and the user deserves to
+    // know the sky itself is fine — not to watch a retry counter forever.
+    setStatus(
+      (!proxyEverWorked && !throttled)
+        ? 'LIVE DATA UNAVAILABLE · no data proxy on this host — stars, planets and the Moon still work'
+        : `AIRCRAFT FEED: ${throttled?'rate-limited':'network issue'} — retry in ${Math.round(wait/1000)}s`
+    );
+    nextDelay=wait;
+    return;                       // finally schedules the retry
   }
   planeBackoffMs=8000;   // success — reset the backoff cadence
-  setStatus(`AIRCRAFT FEED: live`);
+  proxyEverWorked=true;  // a source answered, so a proxy is present on this host
+  // An empty sky is a live feed, not a fault. Saying so stops people at quiet or
+  // remote locations being told their connection is broken.
+  setStatus(aircraft.length ? 'AIRCRAFT FEED: live'
+                            : 'AIRCRAFT FEED: live · no traffic in range');
   const now=performance.now();
   const seen=new Set();
   aircraft.forEach(a=>{
@@ -2075,8 +2843,17 @@ async function fetchPlanes() {
   Object.keys(planeMap).forEach(cs=>{if(!seen.has(cs))delete planeMap[cs];});
   document.getElementById('s-planes').textContent=Object.keys(planeMap).length;
   lastFetchTime=performance.now();
+  } catch(err) {
+    // An unexpected throw anywhere above must not kill the feed permanently.
+    // Treat it as a failed cycle and let the backoff carry it.
+    console.warn('OVERHEAD planes:', err);
+    lastFetchTime=performance.now();
+    nextDelay=planeBackoffMs;
+    planeBackoffMs=Math.min(planeBackoffMs*2, 300000);
+    setStatus('AIRCRAFT FEED: error — retry in '+Math.round(nextDelay/1000)+'s');
   } finally {
     planeInFlight=false;
+    schedulePlaneFetch(nextDelay);   // exactly one pending run, always
   }
 }
 
@@ -2150,7 +2927,22 @@ function adj3(m){return[m[4]*m[8]-m[5]*m[7],m[2]*m[7]-m[1]*m[8],m[1]*m[5]-m[2]*m
 function mmm3(a,b){var r=[];for(var i=0;i<3;i++)for(var j=0;j<3;j++){var s=0;for(var k=0;k<3;k++)s+=a[3*i+k]*b[3*k+j];r[3*i+j]=s;}return r;}
 function mmv3(m,v){return[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];}
 function b2p3(x1,y1,x2,y2,x3,y3,x4,y4){var m=[x1,x2,x3,y1,y2,y3,1,1,1];var v=mmv3(adj3(m),[x4,y4,1]);return mmm3(m,[v[0],0,0,0,v[1],0,0,0,v[2]]);}
-function homography(w,h,cn){var s=b2p3(0,0,w,0,w,h,0,h);var d=b2p3(cn[0][0],cn[0][1],cn[1][0],cn[1][1],cn[2][0],cn[2][1],cn[3][0],cn[3][1]);var t=mmm3(d,adj3(s));for(var i=0;i<9;i++)t[i]/=t[8];return"matrix3d("+[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]].join(",")+")";}
+// Returns a CSS matrix3d, or NULL when the quad is degenerate.
+// Verified reachable: with all four corners coincident, or with a zero-size viewport
+// (a minimised or not-yet-laid-out window makes innerWidth/innerHeight 0), the
+// adjugate is singular, t[8] is 0, and every term becomes NaN. The browser then
+// rejects `matrix3d(NaN,…)` and silently keeps the PREVIOUS transform — so the
+// calibration appears frozen mid-drag with nothing logged. Callers now skip
+// applying rather than pushing an invalid transform.
+function homography(w,h,cn){
+  var s=b2p3(0,0,w,0,w,h,0,h);
+  var d=b2p3(cn[0][0],cn[0][1],cn[1][0],cn[1][1],cn[2][0],cn[2][1],cn[3][0],cn[3][1]);
+  var t=mmm3(d,adj3(s));
+  if(!t[8] || !isFinite(t[8])) return null;
+  for(var i=0;i<9;i++) t[i]/=t[8];
+  for(var k=0;k<9;k++) if(!isFinite(t[k])) return null;
+  return "matrix3d("+[t[0],t[3],0,t[6],t[1],t[4],0,t[7],0,0,1,0,t[2],t[5],0,t[8]].join(",")+")";
+}
 
 // Aircraft are now re-projected from lat/lon every frame in simulate(), so a change
 // of projection (dome↔ceiling-cutout or FOV) is already seamless. We only clear the
@@ -2179,7 +2971,7 @@ function toggleProjMode(btn){
 // mode drives domeFov (angular diameter across the dome circle). The single
 // slider + number input edit whichever mode is active.
 function fovRange(){
-  // Wide caps below 180 to avoid the tan(90\u00B0) focal-length singularity.
+  // Wide caps below 180 to avoid the tan(90°) focal-length singularity.
   return projMode==='dome' ? {min:30,max:180} : {min:30,max:160};
 }
 function updateFovUI(){
@@ -2190,14 +2982,31 @@ function updateFovUI(){
   const inp=document.getElementById('fov-input');
   if(inp){ inp.min=rg.min; inp.max=rg.max; if(document.activeElement!==inp) inp.value=Math.round(cur); }
 }
-function setFov(v){
+// Dragging the slider fires oninput at pointer-move rate, and each call used to run
+// six full rebuilds, re-anchor every aircraft (wiping their trails) and push state to
+// the ceiling window — which then repeated all six rebuilds itself. Both windows
+// locked up for the length of the drag. setOrient() was throttled to 70 ms for
+// exactly this reason; setFov never was.
+//
+// The value and the on-screen number update immediately (so the control stays
+// responsive); the expensive rebuild is coalesced.
+let _fovRebuildPending=false;
+function fovRebuild(){
+  buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
+  reprojectTraffic();
+  pushState();
+}
+function setFov(v, live){
   v=+v; if(!isFinite(v)) return;
   const rg=fovRange(); v=Math.max(rg.min,Math.min(rg.max,v));
   if(projMode==='dome') domeFov=v; else fovDeg=v;
   updateFovUI();
-  buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun();
-  reprojectTraffic();
-  pushState();
+  if(live){
+    if(!_fovRebuildPending){
+      _fovRebuildPending=true;
+      setTimeout(()=>{ _fovRebuildPending=false; fovRebuild(); }, 70);
+    }
+  } else fovRebuild();
 }
 // Switch the sky palette (Style menu). Also sets the matching Bortle level, then
 // rebuilds the colour-baked layers (stars + Milky Way). The sky gradient reads the
@@ -2339,7 +3148,7 @@ function pushState() {
   const s = collectState();
   // 1. Direct window reference (works on file:// AND http) — primary
   if(outWin && !outWin.closed) {
-    try { outWin.postMessage({type:'overhead-state', state:s}, '*'); } catch(e){}
+    try { outWin.postMessage({type:'overhead-state', state:s}, PM_TARGET); } catch(e){}
   }
   // 2. BroadcastChannel (http/localhost only) — backup
   if(outChannel) {
@@ -2347,8 +3156,33 @@ function pushState() {
   }
 }
 
+// ── SCREEN WAKE LOCK ──
+// An overnight ceiling projection is the core use case, and the OS sleeping the
+// display ends it — often inside 15 minutes on a default Windows power plan. Also
+// stops a phone dimming while it sits propped up showing the sky. The lock is
+// dropped whenever the document is hidden, so it has to be re-taken on return.
+let _wakeLock=null;
+async function requestWakeLock(){
+  try{
+    if(!('wakeLock' in navigator) || document.visibilityState!=='visible') return;
+    if(_wakeLock && !_wakeLock.released) return;
+    _wakeLock=await navigator.wakeLock.request('screen');
+    _wakeLock.addEventListener('release',()=>{ _wakeLock=null; });
+  }catch(e){ _wakeLock=null; }   // rejected (unsupported, or not user-visible)
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible') requestWakeLock();
+});
+requestWakeLock();
+
 // Open the clean sky output window
 function openCeilingMode() {
+  // A phone has no second display, and iOS ignores window.open feature strings —
+  // so this is desktop-only. The button is hidden on touch; this guards the rest.
+  if(IS_TOUCH && !matchMedia('(min-width:900px)').matches){
+    ohToast('CEILING MODE IS FOR PROJECTORS','Open OVERHEAD on a computer connected to a projector to cast the sky on your ceiling.','#7fd4ff');
+    return;
+  }
   // If already open, just focus it
   if(outWin && !outWin.closed) { outWin.focus(); return; }
 
@@ -2369,6 +3203,9 @@ function openCeilingMode() {
   const h = Math.max(480, availH - MARGIN);
   const left = (screen.availLeft || 0) + Math.round((availW - w) / 2);
   const top  = (screen.availTop  || 0) + Math.round((availH - h) / 2);
+  // Opened SYNCHRONOUSLY, before any await. window.open needs the click's transient
+  // activation; awaiting getScreenDetails() first would let that lapse and the popup
+  // blocker would eat the window. So: open on the current screen, then move it.
   outWin = window.open(url, 'overhead_output',
     `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`);
 
@@ -2377,7 +3214,15 @@ function openCeilingMode() {
     return;
   }
 
-  // Set up BroadcastChannel if we're on a real origin (not file://)
+  // Now that the window exists, try to shift it onto the projector.
+  placeOnProjector(outWin);
+
+  // Set up BroadcastChannel if we're on a real origin (not file://).
+  // The previous channel MUST be closed first. It was only ever reassigned, so every
+  // open/close cycle stranded a live subscriber whose onmessage still called
+  // pushState() — after six cycles a single 'output-ready' triggered six pushes, each
+  // costing the output window a full six-function sky rebuild.
+  closeOutChannel();
   if(location.protocol !== 'file:' && 'BroadcastChannel' in window) {
     try {
       outChannel = new BroadcastChannel('overhead');
@@ -2388,16 +3233,35 @@ function openCeilingMode() {
 
   // Push initial state once the window has had a moment to load its script.
   // The output also asks for state on load (handshake), so this is belt-and-braces.
+  // Capture the handle in the closure. Reading the GLOBAL at fire time meant that
+  // reopening Ceiling Mode inside the 3s burst window let the first window's timer
+  // clear the SECOND window's interval — killing the handshake burst for the window
+  // that actually needed it.
+  clearInterval(outBurst);
   const burst = setInterval(pushState, 400);
-  setTimeout(()=>clearInterval(burst), 3000);
+  outBurst = burst;
+  setTimeout(()=>{ clearInterval(burst); if(outBurst===burst) outBurst=null; }, 3000);
 
   setCeilingBtnState(true);
   // The button only lights up while the window is actually open, so watch for the
   // user closing it and fall back to the idle look.
   clearInterval(outWatch);
   outWatch = setInterval(()=>{
-    if(!outWin || outWin.closed){ clearInterval(outWatch); outWatch=null; setCeilingBtnState(false); }
+    if(!outWin || outWin.closed){
+      clearInterval(outWatch); outWatch=null;
+      // Drop the stale handle and the channel too, so a closed window leaves nothing
+      // behind: outWin used to keep pointing at the dead window forever.
+      outWin = null;
+      closeOutChannel();
+      setCeilingBtnState(false);
+    }
   }, 1000);
+}
+let outBurst = null;
+function closeOutChannel(){
+  if(!outChannel) return;
+  try{ outChannel.onmessage = null; outChannel.close(); }catch(e){}
+  outChannel = null;
 }
 let outWatch = null;
 // Idle by default (greyed): Ceiling Mode is a thing you go and do, not a state the
@@ -2411,14 +3275,34 @@ function setCeilingBtnState(open){
   if(sub) sub.textContent = open ? 'Window open — drag to projector' : 'Clean window for projector';
 }
 
-// CONTROL SIDE: respond to handshake messages from the output window
+// CONTROL SIDE: respond to handshake messages from the output window.
+// Origin-checked: pushState() replies with the full state payload, including the
+// observer's coordinates, so an unchecked 'output-ready' from a hostile frame would
+// have been enough to make this window hand its location over.
 window.addEventListener('message', (e)=>{
+  if(!pmTrusted(e)) return;
   if(e.data?.type==='output-ready' && !IS_OUTPUT) pushState();
 });
 
-// Close output when control window closes/reloads
-window.addEventListener('beforeunload', ()=>{
+// Close output when control window closes/reloads.
+//
+// beforeunload does NOT disable bfcache, so this page can be restored intact by a
+// back-navigation after the teardown has already run: outWin nulled, both intervals
+// cleared, the channel closed — but the CEILING button still lit, and nothing left
+// alive to notice the ceiling window is gone and reset it. Re-arm on restore.
+function teardownOutput(){
   if(outWin && !outWin.closed) { try{ outWin.close(); }catch(e){} }
+  outWin = null;
+  clearInterval(outWatch); outWatch = null;
+  clearInterval(outBurst); outBurst = null;
+  closeOutChannel();
+}
+window.addEventListener('beforeunload', teardownOutput);
+window.addEventListener('pagehide', (e)=>{ if(!e.persisted) teardownOutput(); });
+window.addEventListener('pageshow', (e)=>{
+  if(!e.persisted || IS_OUTPUT) return;
+  // Restored from bfcache: the ceiling window did not survive, so make the UI agree.
+  if(!outWin || outWin.closed){ outWin = null; setCeilingBtnState(false); }
 });
 
 // ═══════════════════════════════════════════════════════
@@ -2429,9 +3313,16 @@ function initOutputMode() {
   document.body.classList.add('projector','output-only');
   projectorMode = true; // output always uses cinematic projector rendering
 
-  // Receive state via postMessage (works file:// and http)
+  // Receive state via postMessage (works file:// and http). Origin-checked: applyState
+  // moves the observer, repaints the sky and can trigger fullscreen, so this must only
+  // ever act on messages from our own control window.
   window.addEventListener('message', (e)=>{
+    if(!pmTrusted(e)) return;
     if(e.data?.type==='overhead-state') applyState(e.data.state);
+    // Auto-placed onto the projector: remember it, so the START SKY click (a real
+    // user gesture in THIS window) can take us fullscreen — a postMessage alone
+    // has no user activation and requestFullscreen would just reject.
+    if(e.data?.type==='auto-placed') autoPlaced=true;
     if(e.data?.type==='go-fullscreen') document.documentElement.requestFullscreen?.().catch(()=>{});
   });
   // Receive via BroadcastChannel (http/localhost backup)
@@ -2444,21 +3335,38 @@ function initOutputMode() {
     } catch(e){}
   }
   // Also announce to opener directly (file:// path)
-  try { if(window.opener) window.opener.postMessage({type:'output-ready'}, '*'); } catch(e){}
+  try { if(window.opener) window.opener.postMessage({type:'output-ready'}, PM_TARGET); } catch(e){}
 
   // Clicks inside the ceiling panel are UI, not a fullscreen toggle.
   const cp=document.getElementById('ceil-panel');
   if(cp) cp.addEventListener('click', e=>e.stopPropagation());
+
+  // The calibration overlay needs the same treatment, and never had it.
+  // finishCalibration() clears calOpen synchronously, so by the time the START SKY
+  // click bubbled to the document handler below its `if(calOpen) return;` guard no
+  // longer applied — and that handler TOGGLES fullscreen. Two consequences:
+  //   • Re-calibrating while already fullscreen (P → RE-CALIBRATE → START SKY)
+  //     dropped the projector straight out of fullscreen, mid-show.
+  //   • On a single-monitor machine it bypassed the deliberate `autoPlaced` gate in
+  //     finishCalibration and went fullscreen on the user's laptop uninvited.
+  const co=document.getElementById('cal-overlay');
+  if(co) co.addEventListener('click', e=>e.stopPropagation());
 
   // Click anywhere → toggle fullscreen
   document.addEventListener('click', ()=>{
     if(calOpen) return; // don't toggle fullscreen while dragging calibration handles
     // (Clicks inside the ceiling panel never reach here — it stops propagation —
     //  so the sky still toggles fullscreen while the panel is open.)
-    if(!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(()=>{});
+    // iPhone Safari exposes no Fullscreen API on ordinary elements (webkit* is
+    // video-only), so this is a silent no-op there — Add to Home Screen gives
+    // standalone mode instead. Guarded so it can't throw on the way past.
+    if(!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const el=document.documentElement;
+      const req=el.requestFullscreen || el.webkitRequestFullscreen;
+      if(req) { try{ const r=req.call(el); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
     } else {
-      document.exitFullscreen?.();
+      const ex=document.exitFullscreen || document.webkitExitFullscreen;
+      if(ex) { try{ const r=ex.call(document); if(r&&r.catch) r.catch(()=>{}); }catch(e){} }
     }
   });
 
@@ -2469,6 +3377,12 @@ function initOutputMode() {
   function refit(){ sizeCanvas(); rescaleCornersToViewport(); buildStars(); buildPlanets(); buildMeteorShowers(); buildMilkyWay(); buildMoon(); buildSun(); }
   window.addEventListener('resize', refit);
   document.addEventListener('fullscreenchange', refit);
+
+  // ohBoot() returns early when IS_OUTPUT, so updateRenderBtn() never ran here — the
+  // RENDER button showed its hardcoded "RENDER: AUTO" markup even when the stored
+  // mode was 4K, and the first press then cycled 4K→auto while the label stayed
+  // "AUTO", making the button look dead. Sync it to the real state on boot.
+  updateRenderBtn();
 
   // THROW-style calibration: grid + draggable corners, while data loads behind it
   showCalibration();
@@ -2483,6 +3397,7 @@ function initOutputMode() {
 // CEILING CALIBRATION (corner-pin, imported from THROW)
 // ═══════════════════════════════════════════════════════
 let calCorners = null; // [[x,y] x4] tl,tr,br,bl
+let autoPlaced = false; // set when the control window moved us onto the projector
 
 // ── BOOT ANIMATION ── staged reveal: stars → constellations → planets →
 // moon → meteors/satellites → planes → ISS, each fading in 0.55s apart.
@@ -2518,12 +3433,33 @@ function loadCorners(){
       const j=JSON.parse(f);
       if(Array.isArray(j)&&j.length===4) return j.map(([fx,fy])=>[fx*W, fy*H]);
     }
-    // Migrate a legacy pixel-based calibration: best effort, assume it was saved
-    // at roughly this viewport. Re-saved as fractions on the next drag.
+    // Migrate a legacy pixel-based calibration. This used to return the pixel array
+    // verbatim and rely on "re-saved as fractions on the next drag" — but nothing
+    // saves unless a handle is dragged or START SKY is pressed, so the stale pixels
+    // stayed the source of truth on every load, and on a different display size
+    // showCalibration() silently clamped them into the new viewport, squashing the
+    // calibration a little more each time. Convert and rewrite it here, once, then
+    // drop the legacy key so it can never be read again.
     const old=localStorage.getItem('overhead-corners');
     if(old){
       const j=JSON.parse(old);
-      if(Array.isArray(j)&&j.length===4) return j;
+      if(Array.isArray(j)&&j.length===4){
+        // Only convert when the viewport is actually measurable. With W/H of 0 the old
+        // `x/(W||1)` divided by 1, writing raw PIXELS into the fractions key and then
+        // deleting the legacy key — permanently corrupting the calibration (a corner at
+        // x=1270 would come back as 1270 * width). loadCorners() runs from
+        // showCalibration() during boot, exactly when the window may not have laid out
+        // yet, so this was reachable. If the size is not trustworthy, hand back the
+        // pixels for this session and leave the legacy key for a later, valid attempt.
+        if(W>0 && H>0){
+          try{
+            localStorage.setItem('overhead-corners-f',
+              JSON.stringify(j.map(([x,y])=>[x/W, y/H])));
+            localStorage.removeItem('overhead-corners');
+          }catch(e){}
+        }
+        return j;
+      }
     }
   }catch(e){}
   return null;
@@ -2555,13 +3491,17 @@ function orientedCorners(cn){
 }
 function applyCornerPin(){
   if(!calCorners) return;
+  // homography() returns null for a degenerate quad or a zero-size viewport. Keep the
+  // last good transform rather than assigning an invalid one the browser would ignore.
   const t=homography(window.innerWidth, window.innerHeight, orientedCorners(calCorners));
-  cv.style.transformOrigin='0 0';
-  cv.style.transform=t;
+  if(t){ cv.style.transformOrigin='0 0'; cv.style.transform=t; }
   // The green setup mesh warps with the PHYSICAL corners (unmirrored) — it's an
   // alignment aid for the real ceiling quad, not sky content.
   const g=document.getElementById('cal-grid');
-  if(g){ g.style.transformOrigin='0 0'; g.style.transform=homography(window.innerWidth, window.innerHeight, calCorners); }
+  if(g){
+    const gt=homography(window.innerWidth, window.innerHeight, calCorners);
+    if(gt){ g.style.transformOrigin='0 0'; g.style.transform=gt; }
+  }
 }
 function positionHandles(){
   calCorners.forEach((pt,i)=>{
@@ -2600,10 +3540,20 @@ function showCalibration(){
           calCorners[i]=[ev.clientX, ev.clientY];
           positionHandles(); applyCornerPin();
         };
-        const up=()=>{ h.removeEventListener('pointermove',move); h.removeEventListener('pointerup',up);
-          saveCorners(); };
+        // Verified reachable: a pointercancel (palm rejection, an interrupted touch,
+        // an OS gesture) fires INSTEAD of pointerup, so cleanup that only ran on
+        // pointerup left the move listener live — after which a stray pointermove
+        // with no pointerdown still dragged the corner, and another pair leaked on
+        // every cancelled drag.
+        const up=()=>{
+          h.removeEventListener('pointermove',move);
+          h.removeEventListener('pointerup',up);
+          h.removeEventListener('pointercancel',up);
+          saveCorners();
+        };
         h.addEventListener('pointermove',move);
         h.addEventListener('pointerup',up);
+        h.addEventListener('pointercancel',up);
       });
     }
   }
@@ -2615,27 +3565,47 @@ function finishCalibration(){
   document.body.classList.add('calibrated');
   document.body.style.cursor='none';
   saveCorners();
+  // This click is a genuine user gesture in the output window, so it's the one
+  // moment fullscreen is actually permitted. Only when we were auto-placed on the
+  // projector — going fullscreen on someone's laptop screen uninvited would be rude.
+  if(IS_OUTPUT && autoPlaced && !document.fullscreenElement){
+    try{
+      const r=document.documentElement.requestFullscreen?.();
+      if(r && r.catch) r.catch(()=>{});
+    }catch(e){}
+  }
   // Corners are set — now offer the projection controls (mirror + compass).
   if(IS_OUTPUT) ceilPanelOpen();
 }
 
-// OPTIONAL ENHANCEMENT: auto-place on extended screen (Window Management API)
-// Secure context only (https/localhost). Falls back silently on file://.
-async function tryAutoPlaceOnProjector() {
+// ── AUTO-PLACE ON THE PROJECTOR (Window Management API) ──
+// Collapses the usual Win+P → drag the window across → click to fullscreen dance
+// into one button. Secure context only (https/localhost); silently does nothing on
+// file://, on a single-monitor machine, or if the permission is refused — in which
+// case the window simply stays where openCeilingMode() put it.
+//
+// This MOVES an already-open window rather than opening one itself: window.open has
+// to run synchronously inside the click to keep its transient activation, and
+// awaiting getScreenDetails() first would forfeit that and get the popup blocked.
+async function placeOnProjector(win){
+  if(!win || win.closed) return false;
   if(!('getScreenDetails' in window)) return false;
-  try {
+  try{
     const details = await window.getScreenDetails();
-    const ext = details.screens.find(s => !s.isPrimary);
-    if(ext) {
-      const base = location.href.split('?')[0].split('#')[0];
-      outWin = window.open(base+'?mode=output', 'overhead_output',
-        `left=${ext.availLeft},top=${ext.availTop},width=${ext.availWidth},height=${ext.availHeight}`);
-      // Ask it to go fullscreen on that screen
-      setTimeout(()=>{ try{ outWin.postMessage({type:'go-fullscreen'},'*'); }catch(e){} }, 800);
-      return true;
-    }
-  } catch(e){}
-  return false;
+    // The projector is whichever screen isn't the primary one.
+    const ext = (details.screens||[]).find(s => !s.isPrimary);
+    if(!ext || win.closed) return false;
+    win.moveTo(ext.availLeft, ext.availTop);
+    win.resizeTo(ext.availWidth, ext.availHeight);
+    // Tell the output window it landed on the projector. It can't self-fullscreen
+    // from a postMessage (no user activation), so it stores the flag and goes
+    // fullscreen on the START SKY click — which IS a gesture in that window.
+    try{ win.postMessage({type:'auto-placed'}, PM_TARGET); }catch(e){}
+    // Best-effort immediate attempt as well; harmless if the browser refuses.
+    setTimeout(()=>{ try{ if(!win.closed) win.postMessage({type:'go-fullscreen'}, PM_TARGET); }catch(e){} }, 600);
+    ohToast('MOVED TO YOUR PROJECTOR','Drag the four green corners to fit your ceiling, then press START SKY.','#00ffaa');
+    return true;
+  }catch(e){ return false; }   // permission refused / unsupported — keep the fallback
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2644,8 +3614,13 @@ async function tryAutoPlaceOnProjector() {
 // ── v9 grouped layer menus ───────────────────────────────────────
 const GRP_IDS=['sky','traffic','view','style'];   // 'proj' moved into the Ceiling Mode window
 // Members that drive each group button's "active" dot.
+// Which SHOW flags light each group button. 'view' was missing entirely — GRP_IDS
+// listed it but this map did not, so syncGroupBadges() never touched #g-view and it
+// was the one group button that could never light up. AIRCRAFT SHAPES (sprites) and
+// OVERHEAD ALERT (acAlert) were also absent from 'traffic'.
 const GRP_MEMBERS={sky:['stars','cons','planets','meteors','milkyway','moon'],
-                   traffic:['planes','iss','sats'],
+                   traffic:['planes','iss','sats','sprites','acAlert'],
+                   view:['ambient'],
                    style:['realistic','trails','labels']};
 function grpOpen(id){
   GRP_IDS.forEach(g=>{const p=document.getElementById('grp-'+g);if(p&&g!==id)p.classList.remove('show');});
@@ -2655,7 +3630,10 @@ function grpOpen(id){
 function grpClose(id){ const p=document.getElementById('grp-'+id); if(p)p.classList.remove('show'); }
 function syncGroupBadges(){
   for(const g in GRP_MEMBERS){
-    const on=GRP_MEMBERS[g].some(k=>SHOW[k]);
+    let on=GRP_MEMBERS[g].some(k=>SHOW[k]);
+    // DEPTH 3D is a top-level variable rather than a SHOW flag, so it needs naming
+    // explicitly or the STYLE badge misreports when it is the only thing enabled.
+    if(g==='style' && depth3D) on=true;
     const b=document.getElementById('g-'+g); if(b)b.classList.toggle('on',on);
   }
 }
@@ -2679,7 +3657,7 @@ function toggle(key,btn) {
 // this window is tuned to the room.
 function saveCeilSettings(){
   try{ localStorage.setItem('overhead-ceiling',
-    JSON.stringify({h:ceilFlipH,v:ceilFlipV,rot:ceilRot,pal:ceilPalette})); }catch(e){}
+    JSON.stringify({h:ceilFlipH,v:ceilFlipV,rot:ceilRot,pal:ceilPalette,info:ceilInfo})); }catch(e){}
 }
 function loadCeilSettings(){
   try{
@@ -2690,6 +3668,7 @@ function loadCeilSettings(){
       if(typeof j.v==='boolean') ceilFlipV=j.v;
       if(typeof j.rot==='number') ceilRot=((j.rot%360)+360)%360;
       if(j.pal && PALETTES[j.pal]) ceilPalette=j.pal;
+      if(typeof j.info==='boolean') ceilInfo=j.info;
     }
   }catch(e){}
   // The ceiling window renders its OWN preset, so a change on the main page can't
@@ -2729,6 +3708,12 @@ function setCeilRot(deg){
   if(typeof reprojectTraffic==='function') reprojectTraffic();
 }
 function nudgeCeilRot(d){ setCeilRot(ceilRot + d); }
+// Ceiling-local, like the mirror and compass — never pushed to the main page.
+function toggleCeilInfo(){
+  ceilInfo=!ceilInfo;
+  saveCeilSettings();
+  syncCeilUI();
+}
 function syncCeilUI(){
   const bh=document.getElementById('c-fliph'), bv=document.getElementById('c-flipv');
   if(bh) bh.classList.toggle('on', ceilFlipH);
@@ -2736,6 +3721,7 @@ function syncCeilUI(){
   const sl=document.getElementById('cc-slider'); if(sl && +sl.value!==ceilRot) sl.value=ceilRot;
   const vl=document.getElementById('cc-val'); if(vl) vl.textContent=ceilRot+'°';
   const ps=document.getElementById('c-palette'); if(ps) ps.value=ceilPalette;
+  const bi=document.getElementById('c-info'); if(bi) bi.classList.toggle('on', ceilInfo);
 }
 function ceilPanelOpen(){
   const p=document.getElementById('ceil-panel');
@@ -2764,8 +3750,14 @@ function closeInfo() { document.getElementById('info').classList.remove('show');
 // SIMULATE
 // ═══════════════════════════════════════════════════════
 function simulate(now) {
-  const dt=Math.min(now-lastFrameTime,100);
+  // Clamp BOTH ends. The upper bound stops a backgrounded tab from taking one huge
+  // step on return; the lower bound matters because now-lastFrameTime can be negative
+  // on the very first frame (lastFrameTime is seeded before the first rAF timestamp),
+  // which gave one frame of reversed twinkle and a negative meteor spawn chance.
+  const dt=Math.max(0, Math.min(now-lastFrameTime,100));
   lastFrameTime=now;
+  frameDt=dt;          // shared with draw()/spawnMeteors for frame-rate independence
+  simClock+=dt;        // the clock anything with a lifetime must be aged against
   // Planes — dead-reckon in WORLD space (great-circle), then project every frame.
   // This is why aircraft no longer freeze or teleport: screen motion is always
   // derived from a true, continuously-advancing position, so it stays correct in
@@ -2786,32 +3778,97 @@ function simulate(now) {
     const sp=geoToScreen(p.lat,p.lon,p.alt);
     p.sx=sp.x; p.sy=sp.y; p.distM=sp.distM; p.altDeg=sp.altDeg;
     if(p.fadeIn<1) p.fadeIn=Math.min(1,p.fadeIn+dt/1800);
-    if(SHOW.trails){p.trail.push({x:p.sx,y:p.sy});if(p.trail.length>CFG.TRAIL_LEN)p.trail.shift();}
+    // Only record trail points that are actually on screen. The 150 nm query radius
+    // reaches well past the geometric horizon for low aircraft, so most of the feed
+    // sits below it; pushing those off-screen positions meant that any aircraft
+    // climbing into view dragged a contrail whose oldest points were a whole
+    // viewport away — a full-width streak across the ceiling on every appearance.
+    // The guard is renderable rather than onScreen: above the horizon is not the same
+    // as inside the frame, and the ring-clamped positions this used to admit are
+    // exactly the ones that produced the full-width streak.
+    if(SHOW.trails){
+      if(sp.renderable){ p.trail.push({x:p.sx,y:p.sy}); if(p.trail.length>CFG.TRAIL_LEN)p.trail.shift(); }
+      // Not renderable: DRAIN the trail instead of freezing it. Simply skipping the
+      // push left the buffer intact, so an aircraft that set and re-emerged had its
+      // first drawn segment joining its pre-set position to its new one. Retiring the
+      // oldest point at the same rate new ones would arrive makes the contrail
+      // dissipate behind it, and guarantees an empty buffer by the time it returns.
+      else if(p.trail.length){
+        p.trailDrain = (p.trailDrain||0) + frames60();
+        while(p.trailDrain >= 1 && p.trail.length){ p.trail.shift(); p.trailDrain -= 1; }
+      }
+      else p.trailDrain = 0;
+    }
     else p.trail=[];
   });
   // ISS
   if(iss){
     const sp=geoToScreen(iss.lat,iss.lon,iss.alt*1000);
-    iss.sx=sp.x+iss.vx*(now-iss.lastUpdate);
-    iss.sy=sp.y+iss.vy*(now-iss.lastUpdate);
+    // Clamp how far the screen position may be dead-reckoned. fetchISS() does NOT
+    // refresh lastUpdate on a failed poll, so during a proxy outage this term grew
+    // without limit — hours × a per-millisecond velocity walks the marker millions
+    // of pixels away. Beyond ISS_MAX_EXTRAP the sample is stale enough that
+    // extrapolating it is worse than not.
+    const ISS_MAX_EXTRAP = 30000;
+    const age = Math.min(Math.max(0, now - iss.lastUpdate), ISS_MAX_EXTRAP);
+    iss.sx=sp.x+iss.vx*age;
+    iss.sy=sp.y+iss.vy*age;
     iss.currentAlt=sp.altDeg;
-    if(SHOW.trails){iss.trail=iss.trail||[];iss.trail.push({x:iss.sx,y:iss.sy});if(iss.trail.length>CFG.ISS_TRAIL_LEN)iss.trail.shift();}
+    // Same reasoning as the aircraft trails above.
+    // Same reasoning as the aircraft trails above, and the ISS is the worst case:
+    // it leaves and re-enters the frame on every orbit, so a frozen 120-point buffer
+    // reliably drew one segment across the whole ceiling on each return.
+    if(SHOW.trails){
+      iss.trail = iss.trail || [];
+      if(sp.renderable){ iss.trail.push({x:iss.sx,y:iss.sy}); if(iss.trail.length>CFG.ISS_TRAIL_LEN)iss.trail.shift(); }
+      else if(iss.trail.length){
+        iss.trailDrain = (iss.trailDrain||0) + frames60();
+        while(iss.trailDrain >= 1 && iss.trail.length){ iss.trail.shift(); iss.trailDrain -= 1; }
+      }
+      else iss.trailDrain = 0;
+    }
   }
-  // Meteor streaks — head moves while alive; ion trains keep sampling then diffuse
+  // Meteor streaks — head moves while alive; ion trains keep sampling then diffuse.
+  // All three rates are per-60Hz-frame constants, so they scale with f60.
+  const f60m = frames60();
   meteorStreaks.forEach(s=>{
     if(s.life>0){
-      s.x+=s.vx; s.y+=s.vy; s.life-=s.decay;
-      if(s.ion){ s.train.push({x:s.x,y:s.y}); if(s.train.length>44) s.train.shift(); }
+      s.x+=s.vx*f60m; s.y+=s.vy*f60m; s.life-=s.decay*f60m;
+      if(s.ion){
+        // Trim the train by AGE, not by point count. A fixed 44-point cap covered
+        // half the distance at 120 Hz (each step is half as long), so the trail
+        // visibly shortened on a faster display. 44 frames at 60 Hz ≈ 730 ms.
+        // Stamped and trimmed on simClock, not wall time — see the note on simClock.
+        s.train.push({x:s.x,y:s.y,t:simClock});
+        while(s.train.length>1 && simClock - s.train[0].t > 730) s.train.shift();
+        if(s.train.length>240) s.train.shift();     // hard cap, pathological dt only
+      }
     } else if(s.ion){
-      s.trainLife-=0.014; // persists ~70 frames after the head burns out
+      s.trainLife-=0.014*f60m; // persists ~70 frames (≈1.2s) after the head burns out
     }
   });
-  // Fetch countdown
-  const elapsed=now-lastFetchTime;
-  const rem=Math.max(0,CFG.FETCH_INTERVAL-elapsed);
-  document.getElementById('fetch-cd').textContent=Math.ceil(rem/1000);
-  document.getElementById('fetch-fill').style.width=(rem/CFG.FETCH_INTERVAL*100)+'%';
+  // Fetch countdown. Throttled to 4 Hz and skipped entirely in the output window:
+  // this was two DOM writes per frame (~120/s), one of them a style change that
+  // invalidates layout — all to animate a counter that only ticks in whole seconds,
+  // and in Ceiling Mode to update elements CSS has hidden anyway.
+  if(!IS_OUTPUT && now-_cdAt>250){
+    _cdAt=now;
+    // Count down to the ACTUAL next run, not a fixed 90s. During a backoff the next
+    // fetch can be up to 5 minutes away, and a bar that hit zero and then sat there
+    // was telling the user something untrue about the feed.
+    const span=planeNextDelayMs||CFG.FETCH_INTERVAL;
+    const rem=Math.max(0,span-(now-lastFetchTime));
+    const secs=Math.ceil(rem/1000);
+    if(secs!==_cdSecs){
+      _cdSecs=secs;
+      if(!_cdEl) _cdEl=document.getElementById('fetch-cd');
+      if(!_cdFill) _cdFill=document.getElementById('fetch-fill');
+      if(_cdEl) _cdEl.textContent=secs;
+      if(_cdFill) _cdFill.style.width=(rem/span*100)+'%';
+    }
+  }
 }
+let _cdAt=0, _cdSecs=-1, _cdEl=null, _cdFill=null;
 
 // ═══════════════════════════════════════════════════════
 // DRAW
@@ -2856,6 +3913,9 @@ function drawSaturnRing(p, sz, part){ // part: 'back' (far/upper arc) | 'front' 
 
 function draw(now) {
   frame++;
+  // How many 60 Hz frames this one covers — scales the per-frame animation constants
+  // (star scintillation) so they run at the same real-world speed on any display.
+  const F60 = frames60();
   const PM=projectorMode;
   // Projector mode's whole job on text: bigger and bolder. Label *visibility*
   // is SHOW.labels' business, so the two can be set independently.
@@ -3008,7 +4068,7 @@ function draw(now) {
       const N=Math.min(window._bgLayerCount||300, starsBg.length);
       for(let i=0;i<N;i++){
         const s=starsBg[i];
-        s.twinkle+=s.twinkleSpd;
+        s.twinkle+=s.twinkleSpd*F60;
         const sc=s.scint||0.4;
         const a=s.alpha*((1-sc*0.5)+sc*Math.sin(s.twinkle));
         ctx.beginPath(); ctx.arc(s.x+PARX*(1-(s.z||0.6)),s.y+PARY*(1-(s.z||0.6)),s.size*1.2,0,Math.PI*2);
@@ -3016,7 +4076,7 @@ function draw(now) {
       }
     } else {
       starsBg.forEach(s=>{
-        s.twinkle+=s.twinkleSpd;
+        s.twinkle+=s.twinkleSpd*F60;
         // Scintillation: depth of twinkle scales with proximity to horizon
         const sc=s.scint||0.4;
         const a=s.alpha*((1-sc*0.5)+sc*Math.sin(s.twinkle));
@@ -3027,7 +4087,7 @@ function draw(now) {
     starsNamed.forEach(s=>{
       if(!s.visible) return;
       if(projMode==='wide' && (Math.abs(s.x-W/2)>W || Math.abs(s.y-H/2)>H)) return;
-      s.twinkle=(s.twinkle||0)+(s.twinkleSpd||0.02);
+      s.twinkle=(s.twinkle||0)+(s.twinkleSpd||0.02)*F60;
       const sc=s.scint||0.2;
       const tw=(1-sc*0.4)+sc*0.4*Math.sin(s.twinkle); // gentle, brighter floor than bg
       ctx.beginPath(); ctx.arc(s.x,s.y,s.size*(PM?1.6:1),0,Math.PI*2);
@@ -3159,8 +4219,29 @@ function draw(now) {
     // the bright limb always physically points at the (possibly below-horizon) Sun.
     // The real Sun position encodes waxing/waning orientation automatically, so the
     // old hardcoded horizontal `sign` is gone. Falls back to horizontal if no Sun.
+    // `illum` is the ILLUMINATED fraction (0 at new, 1 at full — see buildMoon:
+    // (1-cos elong)/2). The shadow disc has radius 0.88·mr and is pushed away from
+    // the Sun by `off`, so it must CLEAR the disc when illumination is high and
+    // cover it when illumination is low: off has to grow WITH k.
+    //
+    // This read `(1-k)`, which is exactly backwards. At full moon that gave off=0 —
+    // a 0.88·mr black disc at 0.92 alpha stamped on the moon's centre, rendering it
+    // near-black under a label reading "MOON · 100%". At new moon it gave 1.84·mr,
+    // clearing the disc entirely and rendering a full bright moon. Every phase in
+    // between was its own complement.
+    //
+    // The clearance figure has to account for the SOFT edge, not just the hard disc.
+    // 1.88·mr = mr + 0.88·mr clears the 0.88·mr disc at full moon, but the feathered
+    // gradient stroked just below extends to 1.06·mr, so a graded band still crossed
+    // the sunward limb from 0.82·mr outward — a visible smudge on a moon labelled
+    // 100%. Full clearance is mr + 1.06·mr = 2.06·mr; total coverage is still off = 0.
+    //
+    // Deriving the coefficient from the geometry instead of the endpoints gives ~2.0
+    // (the perceived edge sits near 0.96·mr, where the gradient passes half alpha), so
+    // 2.06 costs about 0.03·mr of terminator placement at half phase — sub-pixel at
+    // every moon radius this draws at — in exchange for a guaranteed clean full moon.
     const k=m.illum;
-    const off=(1-k)*2*mr*0.92;
+    const off=k*2.06*mr;
     let sxC, syC;
     if(sunScreen){
       const th=Math.atan2(sunScreen.y-m.y, sunScreen.x-m.x); // moon→Sun on screen
@@ -3226,7 +4307,7 @@ function draw(now) {
     // Radiant markers
     meteorShowers.forEach(sh=>{
       if(!sh.visible||SHOW.realistic) return;
-      const pulse=0.4+0.4*Math.sin(frame*0.05);
+      const pulse=0.4+0.4*Math.sin(now*0.003);   // was frame*0.05 (3 rad/s at 60Hz)
       ctx.beginPath(); ctx.arc(sh.x,sh.y,8+pulse*4,0,Math.PI*2);
       ctx.strokeStyle=`rgba(255,238,68,${0.3+pulse*0.2})`; ctx.lineWidth=1; ctx.stroke();
       ctx.beginPath(); ctx.arc(sh.x,sh.y,3,0,Math.PI*2);
@@ -3309,9 +4390,25 @@ function draw(now) {
       // point a few km ahead along the track and rotate to that screen vector. The
       // sprite/icon is drawn nose-up (−y), hence the +90°. Falls back to track if the
       // ahead-vector is too small to read (e.g. a stationary aircraft near the zenith).
+      // Nose direction from a point projected 4 km ahead along the ground track.
+      // Only valid when both ends are real on-screen positions: for a below-horizon
+      // aircraft both are the bounded off-screen point, and differencing them gives
+      // an arbitrary angle — a sprite pointing anywhere. Fall back to the raw
+      // geographic track, which is what the guard below already did for a degenerate
+      // (too-short) vector.
       const _ah=projectGreatCircle(p.lat,p.lon,p.track,4,1,p.alt)[1];
       const _dx=_ah.x-p.sx, _dy=_ah.y-p.sy;
-      const _hdg=(_dx*_dx+_dy*_dy>0.04)?Math.atan2(_dy,_dx)+Math.PI/2:p.track*Math.PI/180;
+      // renderable subsumes the old (onScreen && elev>0) pair and closes the hole it
+      // left: a point above the horizon but clamped to the OFFSCREEN_R ring passed the
+      // old test and yielded an arbitrary angle.
+      const _hdgOk=_ah.renderable && (_dx*_dx+_dy*_dy>0.04);
+      // The fallback has to be rotated into SCREEN space. p.track is a compass bearing,
+      // but altAzToScreen() turns the whole sky by (orientationHeading + ceilRot) --
+      // so with the screen-orientation dial at 90 deg, or a rotated ceiling, a sprite
+      // using the raw bearing pointed off by exactly that angle. Subtracting the same
+      // rotation is what the projection itself does to every azimuth.
+      const _skyRot = orientationHeading + (IS_OUTPUT ? ceilRot : 0);
+      const _hdg=_hdgOk?Math.atan2(_dy,_dx)+Math.PI/2:(p.track-_skyRot)*Math.PI/180;
       ctx.save(); ctx.translate(p.sx,p.sy); ctx.rotate(_hdg);
       ctx.globalAlpha=a;
       if(isHov||isSel){ctx.shadowColor='#ffaa00';ctx.shadowBlur=16;}
@@ -3412,12 +4509,16 @@ function draw(now) {
     const issAlt=iss.currentAlt||0;
     if(issAlt>-15){
       const issA=issAlt>=0?1:Math.max(0,1+issAlt/15);
-      const pulse=0.5+0.5*Math.sin(frame*0.07);
+      const pulse=0.5+0.5*Math.sin(now*0.0042);  // was frame*0.07 (4.2 rad/s at 60Hz)
       const isHov=hovered===iss, isSel=selected===iss;
       ctx.globalAlpha=issA*bootF(6);
-      // Orbital path
+      // Orbital path — cached. This propagates 90 one-minute steps, each running a
+      // full geoToScreen(), and it was rebuilt EVERY FRAME: ~5,400 projections per
+      // second for one dashed line. The track only shifts perceptibly over seconds,
+      // so recompute at 1 Hz (or immediately when the projection/position changes,
+      // which bumps _issPathKey) and reuse the result in between.
       if(!SHOW.realistic || isHov || isSel){
-        const orbitPath=buildISSOrbitPath();
+        const orbitPath=issOrbitPath(now);
         if(orbitPath.length>1){
           for(let i=1;i<orbitPath.length;i++){
             const frac=orbitPath[i].frac;
@@ -3495,9 +4596,14 @@ function draw(now) {
   ctx.restore();
 
   // ── CORNER INFO (uses the black space outside the dome) ──
-  // Drawn on canvas so it appears in the projection output window too.
-  // Only in projector/output mode — normal browsing keeps the HTML HUD.
-  if(PM && !IS_OUTPUT && !SHOW.ambient){
+  // Drawn on canvas so it appears in the projection output window — where there is
+  // no HTML HUD at all. Normal browsing keeps the HTML HUD instead.
+  //
+  // This was gated on `PM && !IS_OUTPUT`, which could never be true: projectorMode
+  // is only ever set inside initOutputMode(), so PM implies IS_OUTPUT and the whole
+  // block was unreachable. It was written for the ceiling and excluded from it.
+  // PM already implies IS_OUTPUT, so testing PM alone is the honest condition.
+  if(PM && ceilInfo && !SHOW.ambient){
     const pad = 26;
     const fs  = Math.max(12, Math.round(Math.min(W,H)*0.016)); // scales with screen
     const sub = Math.round(fs*0.72);
@@ -3568,12 +4674,42 @@ function draw(now) {
 // MOUSE / TOUCH INTERACTION
 // ═══════════════════════════════════════════════════════
 const HIT=18;
+// Touch needs a bigger target than a mouse: a fingertip covers ~9 mm, and the
+// nearest-hit search below means a generous radius can't cause mis-selection.
+// Touch-ONLY, deliberately. A Windows touchscreen laptop reports maxTouchPoints>0
+// while its primary pointer is still a mouse — and that machine is the main
+// projector platform, so it must keep hover, tooltips and Ceiling Mode. Treat a
+// device as touch only when the primary pointer is coarse, or when it has touch
+// and no fine pointer at all.
+const _mq = (q)=> (typeof matchMedia==='function') && matchMedia(q).matches;
+const IS_TOUCH = _mq('(pointer:coarse)')
+                 || ((navigator.maxTouchPoints||0) > 0 && !_mq('(pointer:fine)'));
+if(IS_TOUCH) document.body.classList.add('is-touch');
+function hitRadius(){ return IS_TOUCH ? 34 : HIT; }
+
+// Nearest-hit rather than last-match: the old code let whichever object happened
+// to be iterated last win, which with a large touch radius would pick the wrong
+// one. Now the closest object inside the radius always wins.
+function pickAt(mx,my){
+  const R=hitRadius(); let best=null, bestD=R;
+  Object.values(planeMap).forEach(p=>{
+    const d=Math.hypot(p.sx-mx,p.sy-my); if(d<bestD){ bestD=d; best=p; }
+  });
+  if(iss && iss.sx!==undefined){
+    const d=Math.hypot(iss.sx-mx,iss.sy-my); if(d<bestD+4){ bestD=d; best=iss; }
+  }
+  planets.forEach(p=>{
+    if(!p.visible) return;
+    const d=Math.hypot(p.x-mx,p.y-my); if(d<bestD){ bestD=d; best=p; }
+  });
+  return best;
+}
+
 cv.addEventListener('mousemove',e=>{
-  const mx=e.clientX, my=e.clientY; hovered=null;
+  if(IS_TOUCH) return;            // synthetic mousemove from a tap must not drive hover
+  const mx=e.clientX, my=e.clientY;
+  hovered=pickAt(mx,my);
   const tt=document.getElementById('tooltip');
-  Object.values(planeMap).forEach(p=>{if(Math.hypot(p.sx-mx,p.sy-my)<HIT)hovered=p;});
-  if(iss&&Math.hypot(iss.sx-mx,iss.sy-my)<HIT+4)hovered=iss;
-  planets.forEach(p=>{if(p.visible&&Math.hypot(p.x-mx,p.y-my)<HIT)hovered=p;});
   if(hovered){
     cv.style.cursor='pointer';
     const lbl=hovered.callsign||hovered.name||'ISS';
@@ -3582,9 +4718,23 @@ cv.addEventListener('mousemove',e=>{
     cv.style.cursor='crosshair'; tt.style.display='none';
   }
 });
-cv.addEventListener('click',e=>{
-  if(hovered){selected=hovered;enrichRoute(hovered);showInfo(hovered);}
-  else{selected=null;closeInfo();}
+
+// Selection runs off pointerdown/up so it works identically for mouse, touch and
+// pen. Previously `click` read `hovered`, which only mousemove ever set — so on a
+// phone, tapping a plane worked only when the browser happened to synthesise a
+// mousemove first. A small movement threshold keeps a drag/scroll from selecting.
+let _ptStart=null;
+cv.addEventListener('pointerdown',e=>{ _ptStart={x:e.clientX,y:e.clientY,t:performance.now()}; });
+cv.addEventListener('pointercancel',()=>{ _ptStart=null; });
+cv.addEventListener('pointerup',e=>{
+  if(!_ptStart) return;
+  const moved=Math.hypot(e.clientX-_ptStart.x, e.clientY-_ptStart.y);
+  const held=performance.now()-_ptStart.t;
+  _ptStart=null;
+  if(moved>12 || held>700) return;             // a drag or long-press, not a tap
+  const target=pickAt(e.clientX,e.clientY);
+  if(target){ hovered=target; selected=target; enrichRoute(target); showInfo(target); }
+  else { hovered=null; selected=null; closeInfo(); }
 });
 
 // ── AIRLINE + ROUTE ENRICHMENT ──────────────────────────────────────────
@@ -3643,9 +4793,13 @@ function enrichRoute(obj){
   if(obj.origin||obj.dest) return;               // already enriched
   if(routeCache.has(cs)){ applyRoute(obj, routeCache.get(cs)); return; }
   obj.routePending=true;
+  // Goes through the proxy like every other upstream. This used to call
+  // vrs-standing-data.adsb.lol directly — a fourth host that was in neither proxy's
+  // allowlist, so it could not have been proxied even if asked, and it contradicted
+  // both PRIVACY.html and the comment in buildPlaneSources(). The request carries
+  // only the public callsign, never the user's position, but it did expose their IP.
   const url=`https://vrs-standing-data.adsb.lol/routes/${cs.slice(0,2)}/${encodeURIComponent(cs)}.json`;
-  fetch(url,{signal:AbortSignal.timeout(8000)})
-    .then(r=>r.ok?r.json():null)
+  fetchAllowlistedJSON(url, 8000)
     .then(j=>{
       let route=null;
       const codes=j&&j._airport_codes_iata;
@@ -3653,7 +4807,7 @@ function enrichRoute(obj){
         const parts=codes.split('-');
         route={origin:parts[0], dest:parts[parts.length-1]};
       }
-      routeCache.set(cs, route);
+      routeCache.set(cs, route);                 // caches the miss too
       obj.routePending=false;
       applyRoute(obj, route);
       if(selected===obj) showInfo(obj);          // refresh the open panel
@@ -3668,12 +4822,18 @@ function showInfo(obj) {
   panel.classList.add('show');
   if(obj.callsign){
     title.textContent='✈ '+obj.callsign;
+    // Registration, type and the route codes all come straight from the adsb.lol
+    // JSON (a.r / a.t / a.orig / a.dest, plus the standing-data route lookup), so
+    // they are third-party strings and get escaped. airlineName resolves from the
+    // in-file AIRLINES table or a /^[A-Z]{3}$/ regex capture — safe either way, but
+    // escaped too so the rule here is "every third-party value", with no exceptions
+    // for someone to have to remember later.
     body.innerHTML=`
-      <div class="irow"><span>REGISTRATION</span><b>${obj.country}</b></div>
-      ${obj.airlineName?`<div class="irow"><span>AIRLINE</span><b>${obj.airlineName}</b></div>`:''}
-      ${obj.acType?`<div class="irow"><span>AIRCRAFT</span><b>${obj.acType}</b></div>`:''}
+      <div class="irow"><span>REGISTRATION</span><b>${esc(obj.country)}</b></div>
+      ${obj.airlineName?`<div class="irow"><span>AIRLINE</span><b>${esc(obj.airlineName)}</b></div>`:''}
+      ${obj.acType?`<div class="irow"><span>AIRCRAFT</span><b>${esc(obj.acType)}</b></div>`:''}
       ${(obj.origin||obj.dest)
-         ? `<div class="irow"><span>ROUTE</span><b>${obj.origin||'?'} → ${obj.dest||'?'}</b></div>`
+         ? `<div class="irow"><span>ROUTE</span><b>${esc(obj.origin||'?')} → ${esc(obj.dest||'?')}</b></div>`
          : (obj.routePending?`<div class="irow"><span>ROUTE</span><b>…</b></div>`:'')}
       <div class="irow"><span>ALTITUDE</span><b>${Math.round(obj.alt/0.3048).toLocaleString()} ft</b></div>
       <div class="irow"><span>SPEED</span><b>${Math.round(obj.vel*1.944)} kts</b></div>
@@ -3710,7 +4870,9 @@ function setLoad(msg,pct){
 // v7.2 USHER — countdowns · tour · ISS overhead alerts
 // (UI layer only. Talks to existing globals; never touches fetch/sky math.)
 // ═══════════════════════════════════════════════════════
-const OH = { precise:false, accuracy:null, muted:false, issAlerted:false, actx:null };
+// Position/accuracy now live in the LOC record — see locTrusted(). OH.precise was a
+// boot-only boolean, so setting a location by hand afterwards never re-enabled alerts.
+const OH = { muted:false, issAlerted:false, actx:null };
 try{ OH.muted = localStorage.getItem('overhead-muted')==='1'; }catch(e){}
 
 // ---- sound + toast + notification ----
@@ -3731,12 +4893,19 @@ function ohChime(){
     });
   }catch(e){}
 }
-function ohToast(title,msg,col){
+function ohToast(title,msg,col,onAct){
   const box=document.getElementById('oh-toasts'); if(!box) return;
   const el=document.createElement('div'); el.className='oh-toast';
   if(col) el.style.setProperty('--tc',col);
   el.innerHTML='<div class="oh-toast-t"></div><div class="oh-toast-m"></div>';
   el.children[0].textContent=title; el.children[1].textContent=msg;
+  // Optional action — lets an offer (e.g. "use this GPS fix instead") be accepted
+  // rather than just announced. Backwards compatible: no handler, no behaviour change.
+  if(typeof onAct==='function'){
+    el.classList.add('oh-toast-act');
+    el.addEventListener('click',()=>{ try{ onAct(); }catch(e){}
+      el.classList.remove('in'); setTimeout(()=>el.remove(),420); });
+  }
   box.appendChild(el);
   requestAnimationFrame(()=>el.classList.add('in'));
   setTimeout(()=>{ el.classList.remove('in'); setTimeout(()=>el.remove(),420); },8000);
@@ -3749,6 +4918,29 @@ function ohNotify(title,body){
       new Notification(title,{ body, silent:true });
   }catch(e){}
 }
+// ---- UP NEXT panel visibility (persisted) ----
+// Called with no argument it toggles (VIEW menu); with a boolean it sets state
+// (the panel's × and the restore chip).
+function ohSetCountdown(show){
+  const p=document.getElementById('oh-countdown');
+  if(!p) return;
+  if(show===undefined) show=p.classList.contains('oh-hidden');
+  p.classList.toggle('oh-hidden', !show);
+  const chip=document.getElementById('oh-restore');
+  if(chip) chip.classList.toggle('show', !show);
+  const btn=document.getElementById('b-upnext');
+  if(btn) btn.classList.toggle('on', show);
+  try{ localStorage.setItem('overhead-upnext', show?'1':'0'); }catch(e){}
+}
+function ohInitCountdown(){
+  let hidden=false;
+  try{ hidden = localStorage.getItem('overhead-upnext')==='0'; }catch(e){}
+  if(hidden) ohSetCountdown(false);
+}
+// Applied at parse time rather than waiting for ohBoot() (~3 s after load), which
+// would show the panel and then snatch it away again.
+ohInitCountdown();
+
 function ohToggleMute(){
   OH.muted=!OH.muted;
   try{ localStorage.setItem('overhead-muted', OH.muted?'1':'0'); }catch(e){}
@@ -3851,7 +5043,7 @@ function ohConstellation(){
 
 // ---- ISS overhead alert (the only push notification) ----
 function ohCheckISSOverhead(){
-  if(!OH.precise || typeof iss==='undefined' || !iss) return;
+  if(!locTrusted() || typeof iss==='undefined' || !iss) return;
   const p=geoToScreen(iss.lat,iss.lon,(iss.alt||408)*1000);
   if(!p) return;
   if(p.altDeg>=70 && !OH.issAlerted){
@@ -3904,7 +5096,36 @@ function ohRenderEvent(){
     + '<div class="oh-ev-sub">'+e.site+' &middot; '+ohFmtCoord(e.lat,e.lon)+'</div>'
     + '<div class="oh-ev-sub">best '+utc+(e.note?(' &middot; '+e.note):'')+'</div>';
 }
+// ---- ISS pass row ----
+// ohNextISSPass() has existed since v7.2 but was never called by anything. It's the
+// most actionable line the panel can carry: unlike a meteor shower or a rising
+// constellation, an ISS pass is a specific bright object at a specific minute.
+function ohRenderISS(){
+  const el=document.getElementById('oh-iss'); if(!el) return;
+  const p=ohNextISSPass();
+  if(!p || p.state==='wait'){ el.textContent='waiting for position'; return; }
+  if(p.state==='up'){
+    // Where to actually look — true geographic azimuth, so it's a real compass
+    // bearing rather than a screen direction.
+    let dir='';
+    try{
+      const g=geoToScreen(iss.lat,iss.lon,(iss.alt||408)*1000);
+      if(g && isFinite(g.az)){
+        const deg=((g.az*180/Math.PI)%360+360)%360;
+        dir=' · look '+['N','NE','E','SE','S','SW','W','NW'][Math.round(deg/45)%8];
+      }
+    }catch(e){}
+    // mins is null when the pass hasn't ended inside the 115-minute search window.
+    const sets = (p.mins!=null) ? (' · sets in '+p.mins+'m') : '';
+    el.innerHTML='<span class="em">OVERHEAD NOW</span>'+dir+sets;
+  } else if(p.state==='soon'){
+    el.innerHTML='rises in <span class="em">'+p.mins+'m</span> · '+ohPassQuality(p.peak);
+  } else {
+    el.textContent='none in the next ~2 hours';
+  }
+}
 function ohRenderSlow(){
+  ohRenderISS();
   const m=document.getElementById('oh-meteor'); if(m) m.innerHTML=ohMeteor();
   const c=document.getElementById('oh-const'); if(c) c.innerHTML=ohConstellation();
 }
@@ -3961,9 +5182,16 @@ function ohEndTour(){
   ohRequestNotify();
 }
 function ohRequestNotify(){
-  if(!OH.precise) return;
-  try{ if('Notification' in window && Notification.permission==='default')
-        Notification.requestPermission().catch(()=>{}); }catch(e){}
+  if(!locTrusted()) return;
+  // iOS Safari only exposes notifications to a PWA installed to the Home Screen —
+  // in a normal tab `Notification` is absent or requestPermission() throws. Feature
+  // -detect rather than UA-sniff so this stays correct as support changes.
+  try{
+    if(!('Notification' in window)) return;
+    if(Notification.permission!=='default') return;
+    const r=Notification.requestPermission();
+    if(r && typeof r.catch==='function') r.catch(()=>{});
+  }catch(e){}
 }
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('oh-tour') || !document.getElementById('oh-tour').classList.contains('show')) return;
@@ -3979,6 +5207,7 @@ function ohBoot(){
   if(IS_OUTPUT) return;
   const b=document.getElementById('oh-bell');
   if(b && OH.muted){ b.classList.add('muted'); b.innerHTML='&#128277;'; b.title='Unmute alerts'; }
+  ohInitCountdown();
   ohRenderEvent(); ohRenderSlow();
   setInterval(ohRenderEvent, 1000);
   setInterval(ohRenderSlow, 15000);
@@ -4005,23 +5234,59 @@ async function init() {
     fetchISS().catch(()=>{});
     fetchPlanes().catch(()=>{});
     lastFetchTime=performance.now();
-    setInterval(fetchPlanes,CFG.FETCH_INTERVAL);
     setInterval(fetchISS,CFG.ISS_INTERVAL);
-    setInterval(()=>{buildStars();buildPlanets();buildMeteorShowers();buildMilkyWay();buildMoon();buildSun();},60000);
+    startSkyRebuilds();
     lastFrameTime=performance.now();
     requestAnimationFrame(t=>{simulate(t);draw(t);});
     return;
   }
 
   setLoad('ACQUIRING LOCATION',10);
-  try {
-    const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:7000,enableHighAccuracy:true}));
-    userLat=pos.coords.latitude; userLon=pos.coords.longitude;
-    OH.precise=true; OH.accuracy=(typeof pos.coords.accuracy==='number')?pos.coords.accuracy:null;
-    const gd=await reverseGeocode(userLat,userLon);
-    const a=gd&&gd.address;
-    if(a) locationName=a.city||a.town||a.county||'Your Location';
-  } catch { OH.locDenied=true; locationName='Location not set'; setLoad('LOCATION DENIED · SET IT YOURSELF',20); await new Promise(r=>setTimeout(r,800)); }
+  // Permission pre-flight: if it's already denied, requesting again only rejects and
+  // burns the boot budget. If it's already granted, no dialog appears at all.
+  let permState=null;
+  try{
+    if(navigator.permissions && navigator.permissions.query)
+      permState=(await navigator.permissions.query({name:'geolocation'})).state;
+  }catch(e){}
+  if(permState==='denied'){
+    OH.locDenied=true; locationName='Location not set';
+    setLoad('LOCATION BLOCKED · SET IT YOURSELF',20);
+    await new Promise(r=>setTimeout(r,800));
+  } else {
+    try {
+      // Resolves on the FIRST fix so boot is never held up; the watch keeps running
+      // and upgrades the position in place as GPS sharpens it over the next ~30 s.
+      const first=await acquireLocation({ onFix:fix=>{
+        applyLocation(fix.lat,fix.lon,null,
+          {source:'gps', accuracy:fix.accuracy, night:false, geocode:false});
+      }});
+      userLat=first.lat; userLon=first.lon;
+      const gd=await reverseGeocode(userLat,userLon);
+      const a=gd&&gd.address;
+      if(a){ locationName=a.city||a.town||a.county||'Your Location'; LOC.name=locationName; }
+      if(LOC.confidence==='coarse') OH.locCoarse=true;
+    } catch(err) {
+      if(err && err.code===3){
+        // TIMEOUT — one relaxed retry. A cached/network fix beats falling back to London.
+        try{
+          const c=await acquireCoarse();
+          applyLocation(c.lat,c.lon,'Your location',
+            {source:'network', accuracy:c.accuracy, night:false, geocode:true});
+          if(LOC.confidence==='coarse') OH.locCoarse=true;
+        }catch(e2){
+          OH.locDenied=true; locationName='Location not set';
+          setLoad('LOCATION TIMED OUT · SET IT YOURSELF',20);
+          await new Promise(r=>setTimeout(r,800));
+        }
+      } else {
+        OH.locDenied=true; locationName='Location not set';
+        setLoad(err && err.code===2 ? 'LOCATION UNAVAILABLE · SET IT YOURSELF'
+                                    : 'LOCATION DENIED · SET IT YOURSELF',20);
+        await new Promise(r=>setTimeout(r,800));
+      }
+    }
+  }
   updateLocReadout();
   setLoad('CALCULATING STAR POSITIONS',35);
   buildStars();
@@ -4043,10 +5308,19 @@ async function init() {
   setTimeout(()=>loader.remove(),900);
   setTimeout(ohBoot, 700);
   if(OH.locDenied){ setTimeout(function(){ zenOpen(); ohToast('LOCATION NOT SET','Pick a city or type your coordinates — the sky shown is only a placeholder until you do.','#7fd4ff'); }, 1000); }
+  // A coarse fix is still applied (anything beats the London default), but it can't
+  // be left sitting silently wrong: >1 km puts an overhead plane tens of degrees off.
+  else if(OH.locCoarse){ setTimeout(function(){
+    // Re-check rather than trusting the boot-time snapshot: the refinement watch is
+    // still running and has usually sharpened a phone's fix by now, in which case
+    // there is nothing to warn about.
+    if(LOC.confidence!=='coarse') return;
+    zenOpen(); ohToast('LOCATION IS APPROXIMATE',
+      `Your browser only knows where you are to ${fmtAccuracy(LOC.accuracy)}. The stars are unaffected, but aircraft may be drawn well away from where they really are — set your position for accurate traffic.`,
+      'var(--amber)'); }, 6000); }
   // Intervals
-  setInterval(fetchPlanes,CFG.FETCH_INTERVAL);
   setInterval(fetchISS,CFG.ISS_INTERVAL);
-  setInterval(()=>{buildStars();buildPlanets();buildMeteorShowers();buildMilkyWay();buildMoon();buildSun();},60000);
+  startSkyRebuilds();
   setInterval(checkOverhead,10000);
   // Sprite-preview aid: open with #demo to drop in sample aircraft of every type
   // (no live feed needed). Gated on the hash, so production is never affected.
@@ -4115,6 +5389,13 @@ function zenMidnightOffsetMs(lon){
   const localSolar=((utcH+lon/15)%24+24)%24;   // 0..24h
   let dh=-localSolar;                            // shift to 00:00 local solar
   if(dh<-12) dh+=24; if(dh>12) dh-=24;           // pick nearest midnight
+  // NOTE (checked, deliberately unchanged): it was suggested this should always pick
+  // the NEXT midnight, on the grounds that a negative offset "starts the sky partway
+  // through the night" and lets a projection reach dawn. It does not. The offset makes
+  // the sky read 00:00 *now* — whichever calendar midnight it borrows from — and the
+  // sky clock then advances at real time either way. Measured: nearest and next both
+  // land on 00:00 to within a rounding error, and both reach 06:00 after six hours of
+  // running. Changing it would only shift the Moon and planets by a day for no gain.
   return Math.round(dh*3600000);
 }
 
@@ -4122,7 +5403,21 @@ function zenMidnightOffsetMs(lon){
 function updateLocReadout(){
   const el=document.getElementById('loc'); if(!el) return;
   const ns=userLat>=0?'N':'S', ew=userLon>=0?'E':'W';
-  el.textContent=`${locationName.toUpperCase()} · ${Math.abs(userLat).toFixed(3)}°${ns} ${Math.abs(userLon).toFixed(3)}°${ew}`;
+  // The London default is never allowed to masquerade as the user's own sky — a
+  // plausible-looking wrong location is worse than an obviously unset one.
+  if(LOC.source==='default'){
+    // init() writes 'Location not set' into locationName when acquisition fails —
+    // don't echo that back twice.
+    const nm=(locationName||'').toUpperCase();
+    el.textContent = nm.indexOf('NOT SET')>=0
+      ? 'LOCATION NOT SET · SHOWING A PLACEHOLDER SKY'
+      : `DEFAULT · ${nm} — LOCATION NOT SET`;
+    el.className='loc-text loc-unset';
+    return;
+  }
+  const acc=fmtAccuracy(LOC.accuracy);
+  el.textContent=`${locationName.toUpperCase()} · ${Math.abs(userLat).toFixed(3)}°${ns} ${Math.abs(userLon).toFixed(3)}°${ew}`+(acc?` · ${acc}`:'');
+  el.className='loc-text loc-'+LOC.confidence;
 }
 
 // Reflect a programmatic Bortle change on its button.
@@ -4134,12 +5429,40 @@ function zenSyncBortleBtn(){
   b.classList.toggle('on', BORTLE===1);
 }
 
-// THE canonical observer-position setter.
+// THE canonical observer-position setter — and now the only place a position is
+// ever written, so provenance can't be forgotten at a call site the way zenUseGPS()
+// used to forget it.
 function applyLocation(lat,lon,name,opts){
   opts=opts||{};
+  // ── PRECEDENCE ── Only BACKGROUND fixes are gated; anything the user did on
+  // purpose (ZENYTH search, dark-sky pick, typed coordinates, USE MY GPS) always
+  // wins. Two rules:
+  //   • never override a position the user chose themselves — otherwise a refining
+  //     GPS watch would yank a deliberate teleport back home mid-flight;
+  //   • never downgrade to a less trustworthy automatic source.
+  // A blocked fix becomes an offer rather than being thrown away.
+  if(opts.source && !opts.userInitiated){
+    if(LOC.userSet || rankOf(opts) < rankOf(LOC)){
+      offerUpgrade({lat, lon, source:opts.source, accuracy:opts.accuracy ?? null});
+      return false;
+    }
+  }
   userLat=zenClamp(lat,-90,90);
   userLon=zenClamp(lon,-180,180);
   if(name) locationName=name;
+  // Record HOW we got here so the UI can tell the user whether to trust the traffic.
+  if(opts.source){
+    LOC.lat=userLat; LOC.lon=userLon; LOC.name=locationName;
+    LOC.accuracy=(opts.accuracy!=null && isFinite(opts.accuracy))?opts.accuracy:null;
+    LOC.source=opts.source;
+    LOC.confidence=confidenceOf(LOC.accuracy);
+    LOC.isLive=!opts.night;   // a teleport is explicitly not "where the user is"
+    LOC.userSet=!!opts.userInitiated;   // locks out background overrides
+    LOC.ts=Date.now();
+  }
+  // Trails were drawn against the old observer position; keep them from kinking
+  // when a refinement fix or a teleport moves the origin.
+  if(typeof reprojectTraffic==='function') reprojectTraffic();
   skyTimeOffsetMs = opts.night ? zenMidnightOffsetMs(userLon) : 0;
   if(opts.authentic){
     BORTLE=1; zenSyncBortleBtn();
@@ -4156,9 +5479,10 @@ function applyLocation(lat,lon,name,opts){
     reverseGeocode(userLat,userLon).then(g=>{
       const a=(g&&g.address)||{};
       const nm=a.city||a.town||a.village||a.county||a.state||a.country;
-      if(nm){ locationName=nm; updateLocReadout(); if(typeof zenUpdateReadout==='function') zenUpdateReadout(); if(typeof pushState==='function') pushState(); }
+      if(nm){ locationName=nm; LOC.name=nm; updateLocReadout(); if(typeof zenUpdateReadout==='function') zenUpdateReadout(); if(typeof pushState==='function') pushState(); }
     });
   }
+  return true;
 }
 
 // ── Place search (forward geocoding) ── Debounced: fires when you pause typing
@@ -4185,30 +5509,110 @@ function zenSearchInput(){
     }
     box.innerHTML='';
     res.forEach(r=>{
-      const d=document.createElement('div'); d.className='zen-res'; d.textContent=r.display_name;
-      d.addEventListener('click',()=>zenPickResult(parseFloat(r.lat),parseFloat(r.lon),zenShortName(r)));
+      const acc=zenAccuracyOf(r), kind=zenKindOf(r);
+      const d=document.createElement('div'); d.className='zen-res';
+      // Show what KIND of thing matched and how precise it is, so it's obvious
+      // which result is your actual house versus the surrounding city.
+      const main=document.createElement('div'); main.className='zen-res-main';
+      main.textContent=r.display_name;
+      const meta=document.createElement('div'); meta.className='zen-res-meta';
+      meta.textContent=(kind?kind.toUpperCase():'')+(acc!=null?(' · '+fmtAccuracy(acc)):'');
+      d.appendChild(main); d.appendChild(meta);
+      // Two intents, because they need different sky clocks: living here keeps the
+      // sky live, whereas travelling there shows that place at its local midnight.
+      const btns=document.createElement('div'); btns.className='zen-res-btns';
+      const bHere=document.createElement('button'); bHere.className='zen-res-b primary'; bHere.textContent='I LIVE HERE';
+      const bGo=document.createElement('button');  bGo.className='zen-res-b';           bGo.textContent='TAKE ME THERE';
+      bHere.addEventListener('click',ev=>{ ev.stopPropagation();
+        zenPickResult(parseFloat(r.lat),parseFloat(r.lon),zenShortName(r),{live:true,accuracy:acc}); });
+      bGo.addEventListener('click',ev=>{ ev.stopPropagation();
+        zenPickResult(parseFloat(r.lat),parseFloat(r.lon),zenShortName(r),{live:false,accuracy:acc}); });
+      btns.appendChild(bHere); btns.appendChild(bGo);
+      d.appendChild(btns);
+      // Tapping the row itself keeps the old behaviour (teleport).
+      d.addEventListener('click',()=>zenPickResult(parseFloat(r.lat),parseFloat(r.lon),zenShortName(r),{live:false,accuracy:acc}));
       box.appendChild(d);
     });
   }, 600);
 }
+// Nominatim already geocodes full street addresses to building precision — that was
+// never the limitation. The limitation was that this function threw the address
+// away: for a house result address.city is populated, so typing "12 Elm St,
+// Manchester" came back labelled "Manchester, United Kingdom", which reads as a
+// city-level match even though the coordinates were accurate to ~10 m. Keep the
+// house number and street when the result actually has them.
 function zenShortName(r){
   const a=r.address||{};
-  const place=a.city||a.town||a.village||a.hamlet||a.suburb||a.county||a.state||r.name;
-  const country=a.country;
-  if(place&&country&&country!==place) return place+', '+country;
-  return place||(r.display_name||'').split(',').slice(0,2).join(', ');
+  const street=[a.house_number, a.road].filter(Boolean).join(' ');
+  // a.country included as a last resort: a country-level match has none of the
+  // finer fields, and without it the row rendered with a blank label.
+  const place=a.city||a.town||a.village||a.hamlet||a.suburb||a.county||a.state||r.name||a.country;
+  const parts=[];
+  if(street) parts.push(street);
+  if(place && place!==street) parts.push(place);
+  if(!parts.length){
+    const dn=(r.display_name||'').split(',').slice(0,2).join(', ').trim();
+    return dn || 'Unnamed place';
+  }
+  // Only append the country when it adds something (i.e. we're not already specific).
+  if(!street && a.country && a.country!==place) parts.push(a.country);
+  return parts.join(', ');
 }
-function zenPickResult(lat,lon,name){
+// How precise is this match, in metres? Nominatim reports what KIND of thing it
+// found (addresstype, and place_rank 0–30 coarse→fine); map that to an accuracy
+// estimate so the confidence badge works for typed addresses too — previously
+// source:'address' passed no accuracy at all, so the app's most precise input
+// method displayed no precision.
+function zenAccuracyOf(r){
+  const t=(r.addresstype||r.type||'').toLowerCase();
+  if(/^(house|building|address|amenity|shop|place_house)$/.test(t)) return 10;
+  if(t==='road'||t==='residential'||t==='street') return 75;
+  if(t==='postcode') return 250;
+  if(/^(suburb|neighbourhood|quarter|hamlet|isolated_dwelling)$/.test(t)) return 500;
+  if(/^(village|town)$/.test(t)) return 1500;
+  if(t==='city'||t==='municipality') return 5000;
+  const rank=+r.place_rank;
+  if(isFinite(rank)){
+    if(rank>=28) return 15;
+    if(rank>=24) return 100;
+    if(rank>=20) return 600;
+    if(rank>=16) return 3000;
+    if(rank>=12) return 30000;
+    return 100000;
+  }
+  return null;
+}
+// Short human label for the result row, so a house can be told from a city.
+function zenKindOf(r){
+  const m=zenAccuracyOf(r);
+  if(m==null) return '';
+  if(m<=15) return 'house';
+  if(m<=100) return 'street';
+  if(m<=600) return 'area';
+  if(m<=2000) return 'town';
+  if(m<=10000) return 'city';
+  return 'region';
+}
+function zenPickResult(lat,lon,name,opts){
+  opts=opts||{};
   const box=document.getElementById('zen-results'); if(box){ box.classList.remove('show'); box.innerHTML=''; }
   const inp=document.getElementById('zen-search'); if(inp) inp.value=name;
   const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
-  if(isFinite(lat)&&isFinite(lon)) applyLocation(lat,lon,name,{night:true});
+  if(!isFinite(lat)||!isFinite(lon)) return;
+  // live:true means "this is my address" — keep the real-time sky and mark the
+  // position as the user's own, so ISS overhead alerts stay enabled. Otherwise it's
+  // a teleport and gets the destination's local midnight, as before.
+  applyLocation(lat,lon,name,{
+    night:!opts.live, source:'address', accuracy:opts.accuracy ?? null, userInitiated:true
+  });
+  const la=document.getElementById('zen-lat'), lo=document.getElementById('zen-lon');
+  if(la) la.value=(+lat).toFixed(5); if(lo) lo.value=(+lon).toFixed(5);
 }
 function zenApplyDark(){
   const sEl=document.getElementById('zen-dark'); if(!sEl||sEl.value==='') return;
   const c=ZEN_DARK[+sEl.value]; if(!c) return;
   const s=document.getElementById('zen-search'); if(s) s.value='';
-  applyLocation(c[1],c[2],c[0],{night:true,remote:true,authentic:true});
+  applyLocation(c[1],c[2],c[0],{night:true,remote:true,authentic:true,source:'manual',userInitiated:true});
 }
 function zenApplyManual(){
   const la=parseFloat(document.getElementById('zen-lat').value);
@@ -4219,25 +5623,47 @@ function zenApplyManual(){
   }
   const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
   const s=document.getElementById('zen-search'); if(s) s.value='';
-  applyLocation(la,lo,'Custom location',{night:false,geocode:true});
+  applyLocation(la,lo,'Custom location',{night:false,geocode:true,source:'manual',userInitiated:true});
 }
 function zenUseGPS(){
   if(!navigator.geolocation){ ohToast('NO GPS','This device can\'t share a location — type coordinates instead.','#ff4466'); return; }
-  ohToast('LOCATING…','Asking your device for its position.','#7fd4ff');
-  navigator.geolocation.getCurrentPosition(function(p){
-    const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
-    const s=document.getElementById('zen-search'); if(s) s.value='';
+  ohToast('LOCATING…','Asking your device for its position — this sharpens over a few seconds.','#7fd4ff');
+  const dk=document.getElementById('zen-dark'); if(dk) dk.value='';
+  const s=document.getElementById('zen-search'); if(s) s.value='';
+  // Same refinement watch as boot, through the same single write path — so this
+  // button can no longer forget to record accuracy/provenance (which used to leave
+  // ISS alerts disabled forever if the user denied location at boot and set it here).
+  let named=false;
+  acquireLocation({ onFix:fix=>{
     const la=document.getElementById('zen-lat'), lo=document.getElementById('zen-lon');
-    if(la) la.value=p.coords.latitude.toFixed(4); if(lo) lo.value=p.coords.longitude.toFixed(4);
-    applyLocation(p.coords.latitude,p.coords.longitude,'Your location',{night:false,geocode:true});
-  }, function(){ ohToast('LOCATION DENIED','No problem — pick a city or type your coordinates instead.','#ff4466'); }, {timeout:7000,enableHighAccuracy:true});
+    if(la) la.value=fix.lat.toFixed(4); if(lo) lo.value=fix.lon.toFixed(4);
+    // Geocode only the first fix — refinements shouldn't each cost a Nominatim call.
+    applyLocation(fix.lat,fix.lon,'Your location',
+      {source:'gps', accuracy:fix.accuracy, night:false, geocode:!named, userInitiated:true});
+    named=true;
+  }}).catch(err=>{
+    ohToast(err && err.code===1 ? 'LOCATION DENIED' : 'LOCATION UNAVAILABLE',
+      'No problem — pick a place or type your coordinates instead.','#ff4466');
+  });
 }
 
 function zenUpdateReadout(){
   const r=document.getElementById('zen-read'); if(!r) return;
   const ns=userLat>=0?'N':'S', ew=userLon>=0?'E':'W';
   const mode = skyTimeOffsetMs===0 ? 'LIVE \u00b7 real time' : 'TELEPORTED \u00b7 local midnight';
-  r.innerHTML = `<b>${(locationName||'\u2014').toUpperCase()}</b><br>${Math.abs(userLat).toFixed(4)}°${ns} \u00b7 ${Math.abs(userLon).toFixed(4)}°${ew}<br>${mode}`;
+  const SRC={gps:'GPS',network:'network',address:'address',pluscode:'Plus Code',manual:'manual',saved:'saved',default:'not set'};
+  const acc=fmtAccuracy(LOC.accuracy);
+  const prov=acc ? `${acc} \u00b7 ${SRC[LOC.source]||LOC.source}` : (SRC[LOC.source]||'');
+  // The metre figure means nothing on its own — say what it actually costs. Only the
+  // aircraft layer is sensitive to observer error; the stars are unaffected.
+  const warn = LOC.confidence==='coarse'
+    ? `<br><span style="color:var(--amber)">Aircraft may be drawn well away from where they really are. Set your position below for accurate traffic.</span>`
+    : '';
+  // locationName is Nominatim's — i.e. from OpenStreetMap, which is publicly
+  // editable — so it is escaped below. The coordinates, mode, prov and warn values
+  // are all generated in this file from numbers and fixed vocabularies, and warn
+  // deliberately carries a <span>, so those are left as markup on purpose.
+  r.innerHTML = `<b>${esc((locationName||'\u2014').toUpperCase())}</b><br>${Math.abs(userLat).toFixed(4)}°${ns} \u00b7 ${Math.abs(userLon).toFixed(4)}°${ew}<br>${mode}${prov?(' · '+prov):''}${warn}`;
 }
 function zenOpen(){ const e=document.getElementById('zen-panel'); if(e) e.classList.add('show'); zenUpdateReadout(); }
 function zenClose(){ const e=document.getElementById('zen-panel'); if(e) e.classList.remove('show'); }
@@ -4263,7 +5689,17 @@ init();
      OVERHEAD bundles this so the time-lapse recorder works with zero
      network dependency. Full credit to the original author.
      ════════════════════════════════════════════════════════════════ -->
-<script>
+<!-- type="text/plain" so the browser does NOT parse or compile these 69 KB at page
+     load. Most visitors never record anything, and this is the single largest
+     script in the file — on a mid-range phone that's a meaningful slice of startup
+     spent compiling a muxer nobody asked for. ensureMuxer() below injects it into a
+     real <script> the first time RECORD is pressed.
+
+     Deliberately still INLINE rather than an external file: moving it out would cut
+     the download too, but it would break the single-file promise (README) and the
+     app's ability to run straight from file:// with no server. Parse cost is the
+     part worth reclaiming; the bytes stay. -->
+<script type="text/plain" id="webm-muxer-src">
 "use strict";
 var WebMMuxer = (() => {
   var __defProp = Object.defineProperty;
@@ -5769,6 +7205,10 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
   var LS_MARK = 'overhead-rec';       // crash-recovery marker
   var LS_CFG  = 'overhead-rec-cfg';   // persisted settings
   var OPFS_NAME = 'overhead-rec.webm';
+  // webm-muxer emits a 39-byte EBML header the moment it is constructed, before any
+  // frame exists. A file at or near that size is structurally empty and unplayable,
+  // so size>0 was never a valid test for 'we have a recording'.
+  var MIN_VALID_BYTES = 512;
 
   var QBPP = { small:0.025, balanced:0.05, crisp:0.09 };
 
@@ -5780,7 +7220,12 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
     capMs:2000, playFps:30, resLong:1280, quality:'balanced', codec:'vp9',
     // engine handles
     encoder:null, muxer:null, worker:null, scratch:null, sctx:null,
-    memChunks:null, mediaRec:null, mediaBlobs:null, recWorker:null
+    memChunks:null, mediaRec:null, mediaBlobs:null, recWorker:null,
+    // Written and read elsewhere but missing from this literal, which is the one
+    // thing the literal exists to prevent: it documents the object's shape.
+    mediaStream:null,   // tier-3 captureStream(); its tracks must be stopped on teardown
+    failed:null,        // first failure message of the CURRENT session, or null
+    pending:null        // in-flight save promise, cleared by cleanupEngine()
   };
 
   var haveWebCodecs = ('VideoEncoder' in window) && ('VideoFrame' in window);
@@ -5822,9 +7267,13 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
     if(b < 1048576) return (b/1024).toFixed(0) + ' KB';
     return (b/1048576).toFixed(1) + ' MB';
   }
+  // Rolls into hours. It used to only ever print minutes:seconds, so a three-hour
+  // overnight session read '185:23'.
   function fmtClock(sec){
-    var m = Math.floor(sec/60), s = sec%60;
-    return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec/3600), m = Math.floor(sec/60)%60, s = sec%60;
+    var mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
+    return h > 0 ? (h + ':' + mm + ':' + ss) : (mm + ':' + ss);
   }
   function stampFrom(d){
     d = d || new Date(); var p = function(n){ return String(n).padStart(2,'0'); };
@@ -5885,34 +7334,154 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
     '}catch(err){self.postMessage({type:"error",error:String((err&&err.message)||err)});}};'
   ].join('\n');
 
+  // ── LAZY MUXER ──
+  // webm-muxer ships inline as <script type="text/plain"> so it costs no parse time
+  // at page load. First RECORD press promotes it to a real script element, which
+  // compiles it and defines window.WebMMuxer. Idempotent, and cached as a promise
+  // so concurrent calls share one load.
+  var _muxerReady = null;
+  function ensureMuxer(){
+    if(window.WebMMuxer) return Promise.resolve();
+    if(_muxerReady) return _muxerReady;
+    _muxerReady = new Promise(function(resolve, reject){
+      try{
+        var src = document.getElementById('webm-muxer-src');
+        if(!src || !src.textContent){ reject(new Error('muxer source not found')); return; }
+        var s = document.createElement('script');
+        s.textContent = src.textContent;   // executes synchronously on append
+        document.head.appendChild(s);
+        if(window.WebMMuxer) resolve();
+        else reject(new Error('muxer did not initialise'));
+      }catch(e){ reject(e); }
+    });
+    return _muxerReady;
+  }
+
   function makeWorker(){
     var blob = new Blob([WORKER_SRC], { type:'text/javascript' });
-    return new Worker(URL.createObjectURL(blob));
+    var url  = URL.createObjectURL(blob);
+    var w    = new Worker(url);
+    // The URL was never revoked, pinning one blob per start() for the document's
+    // lifetime. Revoking after construction is safe — the worker already holds its
+    // own reference to the script — and is the documented pattern.
+    try{ URL.revokeObjectURL(url); }catch(e){}
+    return w;
   }
-  function workerCall(worker, msg, transfer, expect){
+  // Settles on the expected reply, on a worker-reported error, on the worker dying,
+  // or on a timeout. Previously it settled ONLY on a matching message: a worker that
+  // was killed or never answered left start()/stop() pending forever, so recToggle's
+  // `.then(REC.busy = false)` never ran — the button stuck on "SAVING…" and every
+  // later press was ignored, with no way back except reloading the page.
+  function workerCall(worker, msg, transfer, expect, timeoutMs){
     return new Promise(function(res, rej){
-      function onmsg(e){
-        if(e.data.type === expect){ worker.removeEventListener('message', onmsg); res(e.data); }
-        else if(e.data.type === 'error'){ worker.removeEventListener('message', onmsg); rej(new Error(e.data.error)); }
+      var settled = false;
+      function cleanup(){
+        settled = true; clearTimeout(to);
+        worker.removeEventListener('message', onmsg);
+        worker.removeEventListener('error', onerr);
       }
+      var to = setTimeout(function(){
+        if(settled) return; cleanup();
+        rej(new Error('storage worker did not answer "' + msg.type + '" in time'));
+      }, timeoutMs || 20000);
+      function onmsg(e){
+        if(settled) return;
+        if(e.data.type === expect){ cleanup(); res(e.data); }
+        else if(e.data.type === 'error'){ cleanup(); rej(new Error(e.data.error)); }
+      }
+      function onerr(){ if(settled) return; cleanup(); rej(new Error('storage worker crashed')); }
       worker.addEventListener('message', onmsg);
-      worker.postMessage(msg, transfer || []);
+      worker.addEventListener('error', onerr);
+      try{ worker.postMessage(msg, transfer || []); }
+      catch(err){ if(!settled){ cleanup(); rej(err); } }
     });
+  }
+
+  // ── failure surfacing ────────────────────────────────────────────
+  // Both the encoder's error callback and the storage worker's error messages used to
+  // go nowhere (a console.warn and an empty handler respectively). A GPU reset or an
+  // OPFS quota failure therefore left the UI showing "● RECORDING" with a climbing
+  // byte counter while nothing was actually being encoded or written — the user only
+  // discovered the truncated file hours later.
+  function recFail(what, detail){
+    // Only meaningful while a capture is actually running. Reporting a failure before
+    // REC.active — e.g. a failed OPFS open, which is HANDLED by falling back to tier 2
+    // and recording perfectly well — alarmed the user for nothing, and worse, latched
+    // REC.failed so that every genuine failure for the rest of that session was
+    // silently swallowed. That is the exact symptom this function exists to prevent.
+    if(!REC.active) return;
+    if(REC.failed) return;                 // first failure of a run wins; don't spam
+    REC.failed = what + (detail ? (': ' + detail) : '');
+    toast('RECORDING STOPPED', REC.failed + ' — saving what was captured.', 'var(--amber)');
+    // If a stop is already in flight (REC.busy), it will save what exists; don't stack.
+    if(!REC.busy){
+      REC.busy = true;
+      Promise.resolve(stop()).catch(function(e){ console.warn('OVERHEAD rec stop:', e); })
+        .then(function(){ REC.busy = false; });
+    }
+  }
+  // Stops a canvas capture stream's tracks. Tier 3 never did this, so every
+  // start/stop cycle left a live track pulling frames off #cv for the rest of the
+  // session.
+  function releaseCaptureStream(){
+    if(!REC.mediaStream) return;
+    try{ REC.mediaStream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }catch(e){}
+    REC.mediaStream = null;
+  }
+  // Tear everything down after a failed start, where stop() will never run. Without
+  // this the leaked worker kept its SyncAccessHandle on the file, so the NEXT record
+  // silently fell back to tier 2 (no crash safety) — and the leaked encoder's output
+  // callback resolves REC.muxer dynamically, so stray chunks were muxed into the next
+  // recording with the previous session's timestamps.
+  function hardReset(){
+    try{ if(REC.encoder && REC.encoder.state !== 'closed') REC.encoder.close(); }catch(e){}
+    if(REC.worker){ try{ REC.worker.terminate(); }catch(e){} REC.worker = null; }
+    if(REC.mediaRec){ try{ REC.mediaRec.stop(); }catch(e){} REC.mediaRec = null; }
+    releaseCaptureStream();
+    REC.encoder = null; REC.muxer = null; REC.scratch = null; REC.sctx = null;
+    REC.memChunks = null; REC.mediaBlobs = null; REC.pending = null;
+    REC.active = false;
   }
 
   // ── START ────────────────────────────────────────────────────────
   function start(){
+    // The recovery card and the RECORD button were both live at once and both act on
+    // the same OPFS filename, and the worker's "open" does an unconditional
+    // truncate(0). Starting a recording with the card still showing therefore wiped
+    // the recoverable file, and a later SAVE then read the in-progress recording and
+    // deleted it — destroying both. Make them mutually exclusive.
+    // Guard on the MARKER, not just on REC.recWorker. When stop()'s read-back fails it
+    // deliberately preserves the file and the marker and tells the user it will be
+    // offered next launch — but it does not set REC.recWorker, so a recWorker-only test
+    // let the next RECORD press through, and the worker's "open" does truncate(0). The
+    // reassuring toast was followed by the capture being destroyed on the very next click.
+    var pendingMark = null;
+    try{ pendingMark = JSON.parse(localStorage.getItem(LS_MARK) || 'null'); }catch(e){}
+    if(REC.recWorker || pendingMark){
+      toast('UNSAVED RECORDING PRESENT',
+        'Save or discard the previous recording before starting a new one — starting now would overwrite it.',
+        'var(--amber)');
+      // Surface the recovery card if it is not already up, so there is a way to act.
+      if(!REC.recWorker){ try{ checkRecovery(); }catch(e){} }
+      return Promise.resolve();
+    }
     loadCfg();
     var d = targetDims(); REC.w = d.w; REC.h = d.h;
     REC.frameIndex = 0; REC.bytes = 0; REC.startMs = performance.now(); REC.lastCap = -1e12;
-    REC.pending = null;
+    REC.pending = null; REC.failed = null;
     REC.scratch = document.createElement('canvas');
     REC.scratch.width = REC.w; REC.scratch.height = REC.h;
     REC.sctx = REC.scratch.getContext('2d');
 
     if(!haveWebCodecs){ return startMediaRecorder(); }
 
-    return pickCodec(REC.w, REC.h).then(function(pick){
+    // Compile the muxer now (first record only). If that fails for any reason, fall
+    // through to the MediaRecorder tier rather than failing the capture outright —
+    // same degradation path as an unsupported codec.
+    return ensureMuxer().then(
+      function(){ return pickCodec(REC.w, REC.h); },
+      function(err){ console.warn('OVERHEAD rec: muxer unavailable —', err); return null; }
+    ).then(function(pick){
       if(!pick){ return startMediaRecorder(); }
 
       var onData = function(data, position){
@@ -5938,7 +7507,10 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
       });
       REC.encoder = new VideoEncoder({
         output: function(chunk, meta){ try{ REC.muxer.addVideoChunk(chunk, meta); }catch(e){} },
-        error:  function(e){ console.warn('OVERHEAD rec encoder:', e); }
+        error:  function(e){
+          console.warn('OVERHEAD rec encoder:', e);
+          recFail('Encoder failed', (e && e.message) || '');
+        }
       });
       REC.encoder.configure({
         codec: pick.codec, width: REC.w, height: REC.h,
@@ -5950,8 +7522,25 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
       REC.tier = 1;
       if(haveOPFS){
         REC.worker = makeWorker();
-        REC.worker.addEventListener('error', function(){});
+        // A PERSISTENT listener for worker-reported failures. workerCall() removes its
+        // own listener as soon as "opened" resolves, and the only other handler here
+        // was an empty one for script errors — so every ah.write() failure after start
+        // (an OPFS quota exhaustion hours in, say) was dropped on the floor while the
+        // UI kept reporting a healthy recording.
+        // Attached AFTER the open resolves, not before. Attaching first meant a worker
+        // error during open both rejected workerCall (handled: fall back to tier 2) and
+        // fired recFail — a spurious "RECORDING STOPPED" over a recording that was in
+        // fact fine. recFail's !REC.active guard now covers this too; both are kept
+        // because they fail safe in different ways.
+        var attachWorkerErrorWatch = function(w){
+          if(!w) return;
+          w.addEventListener('message', function(e){
+            if(e && e.data && e.data.type === 'error') recFail('Storage write failed', e.data.error);
+          });
+          w.addEventListener('error', function(){ recFail('Storage worker crashed'); });
+        };
         storeReady = workerCall(REC.worker, { type:'open', name:OPFS_NAME }, [], 'opened')
+          .then(function(){ attachWorkerErrorWatch(REC.worker); })
           .catch(function(){ try{ REC.worker.terminate(); }catch(e){} REC.worker = null; });
       }
       return storeReady.then(function(){
@@ -5981,16 +7570,25 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
   function startMediaRecorder(){
     try{
       var fps = REC.playFps;
-      var stream = cv.captureStream(fps);
+      // Keep the stream so its tracks can be stopped later. It used to be discarded,
+      // leaving a live capture track pulling frames off #cv for the rest of the
+      // session — one more per start/stop cycle.
+      REC.mediaStream = cv.captureStream(fps);
       var mime = 'video/webm;codecs=vp9';
       if(!(window.MediaRecorder && MediaRecorder.isTypeSupported(mime))) mime = 'video/webm';
-      REC.mediaRec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitrateFor(REC.w, REC.h) });
+      // captureStream() delivers the canvas at its REAL backing size, not the
+      // downscale target — so budgeting for REC.w/REC.h under-provisioned the
+      // bitrate (visibly blocky) and the toast reported a resolution that was not
+      // what got recorded. This tier cannot honour the resolution setting at all.
+      var sw = cv.width || REC.w, sh = cv.height || REC.h;
+      REC.mediaRec = new MediaRecorder(REC.mediaStream, { mimeType: mime, videoBitsPerSecond: bitrateFor(sw, sh) });
       REC.mediaBlobs = [];
       REC.mediaRec.ondataavailable = function(e){ if(e.data && e.data.size) REC.mediaBlobs.push(e.data); };
+      REC.mediaRec.onerror = function(e){ recFail('Recorder failed', (e && e.message) || ''); };
       REC.mediaRec.start(1000);
       REC.tier = 3; REC.active = true;
       updateButton(); startTimer();
-      toast('RECORDING SKY', 'Real-time capture (basic mode) \u00B7 ' + REC.w + '\u00D7' + REC.h, 'var(--amber)');
+      toast('RECORDING SKY', 'Real-time capture (basic mode) \u00B7 ' + sw + '\u00D7' + sh, 'var(--amber)');
     }catch(e){
       toast('CANNOT RECORD', 'This browser blocks canvas capture', 'var(--amber)');
     }
@@ -6020,30 +7618,45 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
 
     if(REC.tier === 3){ return stopMediaRecorder(); }
 
+    var framesCaptured = REC.frameIndex;   // cleanupEngine() must not erase this
     return REC.encoder.flush().catch(function(){}).then(function(){
       try{ REC.muxer.finalize(); }catch(e){}
       if(REC.tier === 1 && REC.worker){
-        return workerCall(REC.worker, { type:'stop', name:OPFS_NAME }, [], 'stopped')
-          .then(function(r){ return new Blob([r.buffer], { type:'video/webm' }); })
-          .catch(function(){ return null; });
+        // Generous timeout: reading a multi-hour file back is not instant.
+        return workerCall(REC.worker, { type:'stop', name:OPFS_NAME }, [], 'stopped', 120000)
+          .then(function(r){ return { blob:new Blob([r.buffer], { type:'video/webm' }), readOk:true }; })
+          .catch(function(err){ return { blob:null, readOk:false, err:err }; });
       }
       // tier 2 — assemble positioned chunks from memory
       var total = 0;
       REC.memChunks.forEach(function(c){ total = Math.max(total, c.position + c.data.byteLength); });
       var out = new Uint8Array(total);
       REC.memChunks.forEach(function(c){ out.set(c.data, c.position); });
-      return new Blob([out], { type:'video/webm' });
-    }).then(function(blob){
+      return { blob:new Blob([out], { type:'video/webm' }), readOk:true };
+    }).then(function(res){
+      var blob = res.blob, readOk = res.readOk;
       cleanupEngine();
+      // ── NEVER destroy a recording we failed to read back ──
+      // The read-back allocates the entire file as one ArrayBuffer, so it can fail on
+      // an ordinary overnight capture (a RangeError on a multi-GB allocation). This
+      // used to delete the OPFS file AND clear the crash marker regardless, then tell
+      // the user "No frames were captured" — erasing hours of recording along with the
+      // only means of getting it back. On failure both are now left in place so the
+      // recovery card can offer the file again next launch.
       var done = Promise.resolve();
-      if(REC.worker){
+      if(REC.worker && readOk){
         done = workerCall(REC.worker, { type:'delete', name:OPFS_NAME }, [], 'deleted').catch(function(){});
       }
       return done.then(function(){
         if(REC.worker){ try{ REC.worker.terminate(); }catch(e){} REC.worker = null; }
         REC.memChunks = null;
-        try{ localStorage.removeItem(LS_MARK); }catch(e){}
-        if(blob && blob.size){
+        releaseCaptureStream();
+        if(readOk){ try{ localStorage.removeItem(LS_MARK); }catch(e){} }
+        if(!readOk){
+          toast('COULD NOT READ RECORDING',
+            'Your capture is still on disk and will be offered for recovery next time you open OVERHEAD.',
+            'var(--amber)');
+        } else if(framesCaptured > 0 && blob && blob.size > MIN_VALID_BYTES){
           download(blob, 'OVERHEAD-timelapse-' + stampFrom() + '.webm');
           toast('TIME-LAPSE SAVED', 'In your Downloads \u00B7 ' + fmtBytes(blob.size), 'var(--green)');
         } else {
@@ -6059,16 +7672,29 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
       var mr = REC.mediaRec;
       if(!mr){ res(); return; }
       mr.onstop = function(){
-        var blob = new Blob(REC.mediaBlobs, { type:'video/webm' });
+        var blob = new Blob(REC.mediaBlobs || [], { type:'video/webm' });
         REC.mediaRec = null; REC.mediaBlobs = null;
+        releaseCaptureStream();
         try{ localStorage.removeItem(LS_MARK); }catch(e){}
-        if(blob.size){
+        if(blob.size > MIN_VALID_BYTES){
           download(blob, 'OVERHEAD-timelapse-' + stampFrom() + '.webm');
           toast('RECORDING SAVED', 'In your Downloads \u00B7 ' + fmtBytes(blob.size), 'var(--green)');
+        } else {
+          toast('NOTHING TO SAVE', 'No frames were captured', 'var(--amber)');
         }
         updateButton(); res();
       };
-      try{ mr.stop(); }catch(e){ updateButton(); res(); }
+      // A throwing stop() used to leave REC.mediaRec and REC.mediaBlobs populated and
+      // the recorder still running, so the old recorder's ondataavailable kept
+      // appending into the NEXT recording's blob array — producing a file with two
+      // interleaved streams. Clear the state on the failure path too.
+      try{ mr.stop(); }
+      catch(e){
+        REC.mediaRec = null; REC.mediaBlobs = null;
+        releaseCaptureStream();
+        try{ localStorage.removeItem(LS_MARK); }catch(_){}
+        updateButton(); res();
+      }
     });
   }
 
@@ -6086,31 +7712,73 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
     var w = makeWorker();
     workerCall(w, { type:'probe', name: marker.name || OPFS_NAME }, [], 'probed')
       .then(function(p){
-        if(!p || !p.exists){ try{ localStorage.removeItem(LS_MARK); }catch(e){} try{ w.terminate(); }catch(e){} return; }
+        // p.exists was merely size>0, which the muxer's 39-byte EBML header satisfies —
+        // so an empty session was offered for recovery and 'saved' as an unplayable file.
+        if(!p || !p.exists || !(p.size > MIN_VALID_BYTES)){
+          try{ localStorage.removeItem(LS_MARK); }catch(e){}
+          if(w){ workerCall(w, { type:'delete', name: marker.name || OPFS_NAME }, [], 'deleted')
+            .catch(function(){}).then(function(){ try{ w.terminate(); }catch(e){} }); }
+          return;
+        }
         REC.recWorker = w;
         var started = '';
-        try{ started = new Date(marker.startedISO).toLocaleString(); }catch(e){}
+        if(marker.startedISO){ var ds = new Date(marker.startedISO); if(!isNaN(ds.getTime())) started = ds.toLocaleString(); }
         var msg = document.getElementById('rec-rv-msg');
         if(msg) msg.textContent = 'A time-lapse from ' + (started || 'a previous session') +
           ' was preserved before the tab closed (\u2248' + fmtBytes(p.size) + ').';
         var el = document.getElementById('rec-recover'); if(el) el.classList.add('show');
       })
-      .catch(function(){ try{ localStorage.removeItem(LS_MARK); }catch(e){} try{ w.terminate(); }catch(e){} });
+      .catch(function(){
+        // Keep the marker. This catch was previously only reachable via an explicit
+        // worker "error" message, but workerCall now also rejects on a crash or a 20s
+        // timeout — so a slow or contended OPFS probe would delete the marker while
+        // leaving the file on disk: orphaned, unreferenced and never offered again.
+        // Failing to ASK about a recording is not evidence there is nothing to recover.
+        try{ w.terminate(); }catch(e){}
+      });
   }
   function recoverSave(){
     var w = REC.recWorker; if(!w) return;
+    // Never touch the shared OPFS file while a recording is in flight — this used to
+    // read the IN-PROGRESS capture and then discard it, killing the live recording.
+    if(REC.active){
+      toast('RECORDING IN PROGRESS', 'Stop the current recording first.', 'var(--amber)');
+      return;
+    }
     var marker = {}; try{ marker = JSON.parse(localStorage.getItem(LS_MARK) || '{}'); }catch(e){}
-    var startedDate = null; try{ startedDate = new Date(marker.startedISO); }catch(e){}
-    workerCall(w, { type:'read', name: marker.name || OPFS_NAME }, [], 'readdata')
+    // new Date(undefined) does not throw — it yields an Invalid Date, which is truthy,
+    // so stampFrom() produced 'NaNNaNNaN-NaNNaNNaN' in the filename. Validate it.
+    var startedDate = null;
+    if(marker.startedISO){ var d0 = new Date(marker.startedISO); if(!isNaN(d0.getTime())) startedDate = d0; }
+    // Long timeout, matching stop()'s read-back: pulling a multi-hour capture into a
+    // single ArrayBuffer is slow. workerCall's new 20s default was inherited here by
+    // accident, which turned a slow read into a rejection — see the catch below.
+    workerCall(w, { type:'read', name: marker.name || OPFS_NAME }, [], 'readdata', 120000)
       .then(function(r){
         var blob = new Blob([r.buffer], { type:'video/webm' });
+        if(!(blob.size > MIN_VALID_BYTES)) throw new Error('recovered file is empty');
         download(blob, 'OVERHEAD-timelapse-' + stampFrom(startedDate) + '-recovered.webm');
         toast('RECORDING RECOVERED', 'Saved to Downloads \u00B7 ' + fmtBytes(blob.size), 'var(--green)');
+        // ONLY a confirmed successful save may destroy the file.
+        recoverDiscard(true);
       })
-      .catch(function(e){ toast('RECOVERY FAILED', String((e && e.message) || e), 'var(--amber)'); })
-      .then(function(){ recoverDiscard(true); });
+      .catch(function(e){
+        // Do NOT discard here. Giving workerCall a timeout turned "this call hangs" into
+        // "this call rejects", and the old chain ran recoverDiscard(true) unconditionally
+        // afterwards — so a slow read of a large overnight capture deleted the very file
+        // it had just failed to save. Leave the file AND the marker so the recovery card
+        // can offer it again next launch.
+        toast('COULD NOT RECOVER',
+          String((e && e.message) || e) + ' — your recording is still on disk and will be offered again next time.',
+          'var(--amber)');
+        var el = document.getElementById('rec-recover'); if(el) el.classList.remove('show');
+      });
   }
   function recoverDiscard(silent){
+    if(REC.active && silent !== true){
+      toast('RECORDING IN PROGRESS', 'Stop the current recording first.', 'var(--amber)');
+      return;
+    }
     var w = REC.recWorker;
     var marker = {}; try{ marker = JSON.parse(localStorage.getItem(LS_MARK) || '{}'); }catch(e){}
     var fin = Promise.resolve();
@@ -6160,6 +7828,15 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
       if(lt) lt.textContent = 'RECORD SKY';
       if(sub) sub.textContent = 'Time-lapse to Downloads';
     }
+    // The settings selects are disabled while recording and were only ever re-enabled
+    // by recOpenSettings() — so leaving the panel open across a stop left them greyed
+    // out with no way to change them. Keep the DISABLED FLAGS in step with the real
+    // state, but never the values -- see syncSelects().
+    //
+    // `busy` is passed through because stop() clears REC.active BEFORE calling
+    // updateButton(true), so REC.active alone would re-enable the selects while the
+    // save is still in flight, letting a change land mid-encode.
+    try{ syncSelectsEnabled(busy); }catch(e){}
   }
 
   // ── settings popover ─────────────────────────────────────────────
@@ -6182,17 +7859,32 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
       if(!haveWebCodecs) bits.push('WebCodecs unavailable \u2014 basic real-time capture only.');
       else if(!haveOPFS) bits.push('Crash-recovery needs https/localhost \u2014 disabled here.');
       else bits.push('Crash-safe: capture survives an unexpected tab close.');
+      // iOS Safari hands a downloaded file to the viewer instead of saving it, so
+      // say so rather than letting the recording appear to vanish.
+      if(typeof IS_TOUCH !== 'undefined' && IS_TOUCH)
+        bits.push('On a phone the finished clip may open in a viewer instead of saving \u2014 use Share to keep it.');
       bits.push('Keep this tab visible while recording.');
       note.textContent = bits.join(' ');
     }
   }
+  var REC_SELECTS = ['rec-cap','rec-fps','rec-res','rec-q','rec-codec'];
+  // Enable/disable ONLY. Safe to call at any time, including while the settings panel
+  // is open with a change in it the user has not applied yet.
+  function syncSelectsEnabled(busy){
+    var lock = REC.active || !!busy;
+    REC_SELECTS.forEach(function(id){
+      var el = document.getElementById(id); if(el) el.disabled = lock;
+    });
+  }
+  // Rewrites the select VALUES from REC.*, discarding anything the user changed but has
+  // not applied. Only call this when (re)opening the panel. updateButton() used to call
+  // it on every state change, so a stop() or a recFail() silently reverted a choice the
+  // user was in the middle of making in an open panel.
   function syncSelects(){
     var set = function(id,v){ var el = document.getElementById(id); if(el) el.value = String(v); };
     set('rec-cap', REC.capMs); set('rec-fps', REC.playFps); set('rec-res', REC.resLong);
     set('rec-q', REC.quality); set('rec-codec', REC.codec);
-    ['rec-cap','rec-fps','rec-res','rec-q','rec-codec'].forEach(function(id){
-      var el = document.getElementById(id); if(el) el.disabled = REC.active;
-    });
+    syncSelectsEnabled();
   }
   function recOpenSettings(){
     loadCfg(); syncSelects(); refreshReadout();
@@ -6220,7 +7912,12 @@ if (typeof module === "object" && typeof module.exports === "object") Object.ass
     Promise.resolve(p).catch(function(e){
       console.warn('OVERHEAD rec:', e);
       toast('RECORDING ERROR', String((e && e.message) || e), 'var(--amber)');
-      REC.active = false; updateButton();
+      // Previously this only cleared REC.active, leaving the encoder, muxer, storage
+      // worker and capture stream alive. The orphaned worker kept its
+      // SyncAccessHandle on the file, so the next RECORD silently dropped to the
+      // no-crash-safety tier — and the orphaned encoder could still mux chunks into
+      // the following recording. Tear it all down.
+      hardReset(); updateButton();
     }).then(function(){ REC.busy = false; });
   }
 

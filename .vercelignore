@@ -1,0 +1,11 @@
+# Files kept in the repo but not needed by the deployed site.
+# The aircraft SVGs are the editable SOURCE for the sprites, which ship inlined as
+# base64 data URIs inside index.html — nothing ever fetches these files at runtime.
+sprites/
+
+# Local-development only: the standalone Node CORS proxy and the Windows launcher.
+# Production uses the serverless function in api/proxy.js instead.
+proxy.js
+START.bat
+QUICKSTART.md
+CSP-DRAFT.md

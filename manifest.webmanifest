@@ -1,0 +1,20 @@
+{
+  "name": "OVERHEAD — Live Sky Projector",
+  "short_name": "OVERHEAD",
+  "description": "See what's actually above you right now: live aircraft, the ISS, stars, planets, the Moon and the Milky Way, computed for your exact location.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01060f",
+  "theme_color": "#01060f",
+  "categories": ["education", "utilities", "entertainment"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
