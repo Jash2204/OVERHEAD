@@ -1,5 +1,199 @@
 # OVERHEAD — Changelog
 
+## v10.1 — disclosure, hardening & feed correctness (August 2026)
+
+A correctness and trust release. No new sky features: this one closes the gap between what
+the app claimed and what the code actually did, fixes a data-feed bug that quietly punished
+the exact users OVERHEAD is built for, and hardens the parts a public site gets judged on.
+The astronomy engine is unchanged apart from one genuine geometry fix.
+
+### The feed no longer treats a quiet sky as a failure (the headline)
+Three places in the aircraft path tested `ac.length > 0` for success, so a perfectly good
+`{"ac": []}` — *no traffic in range* — was indistinguishable from a failed request. The
+consequences fell hardest on remote dark-sky sites, which the app actively recommends: the
+status line read `network issue`, the retry backoff climbed toward five minutes, and every
+cycle fell through to the **direct adsb.lol hop, sending the user's coordinates straight to
+the upstream**. It was a privacy leak wearing a UX bug's clothes. Each fetch path now
+returns an explicit three-state result — success (an array, possibly empty), throttled, or
+failed — and an empty sky reads as `live · no traffic in range`.
+
+### A backoff that actually backs off
+`fetchPlanes` was driven by a 90-second `setInterval` **and** scheduled its own retry on
+failure, so the real request floor was 90 seconds no matter what the backoff said, and each
+failure could leave another timer pending — accumulating parallel retry chains that hit the
+upstream *more* often the longer it failed. The intervals are gone; the feed schedules
+itself through a single handle that is always cleared before being reset, so exactly one run
+can ever be pending. Verified doubling 8s → 16s → 32s → 64s → 128s, capped at five minutes,
+with a 420/429 throttle jumping straight to 60s.
+
+### Every request goes through the proxy — no exceptions
+The direct-to-upstream fallback is gone entirely. Aircraft, ISS, place names, place search
+and flight routes now have exactly one path: OVERHEAD's own proxy. That makes the privacy
+policy true as written rather than true most of the time — the data services never receive a
+connection from a visitor's browser. The trade-off is stated plainly rather than buried:
+live data now needs the proxy, so running from `file://` or a static host without the
+serverless function shows a clear "live data unavailable" message instead of failing
+silently, and the offline sky keeps working.
+
+Flight-route lookups were the loophole. They called `vrs-standing-data.adsb.lol`
+**directly** — a fourth host that was in neither proxy's allowlist, so it could not have
+been proxied even if asked, and it contradicted both `PRIVACY.html` and a comment in the
+aircraft code. It is now allowlisted and proxied like everything else.
+
+### The legal pages are reachable
+`index.html` contained zero `<a>` tags, so `PRIVACY.html`, `TERMS.html` and the attribution
+notice could only be found by typing the URL — while ODbL requires the adsb.lol and
+OpenStreetMap credits to be *visible to the user of the work*. A small always-on footer now
+carries all three links plus both ODbL credits, on every viewport, without opening anything.
+It is hidden in Ceiling Mode, where the window is sky-only. `NOTICE.md` gained an HTML twin
+(`NOTICE.html`) styled to match the other pages, because a browser downloads Markdown rather
+than displaying it.
+
+### Privacy policy brought in line with the code
+Three claims were rewritten because they were not true, and three gaps closed because they
+had never been disclosed at all: **place search sends the text you type** to Nominatim;
+tapping an aircraft sends its **public callsign** to the route dataset; and the on-device
+storage list is now complete, with an explicit note that **your location is not among the
+things stored**. One claim was corrected in the app's own favour — the aircraft query is
+deliberately coarsened to about 11 km, which the policy had been underselling as "your
+coordinates".
+
+### Security hardening
+- **Third-party strings are escaped before reaching `innerHTML`.** `locationName` comes from
+  Nominatim — i.e. from OpenStreetMap, which anyone can edit — and reached the DOM raw;
+  `.toUpperCase()` is not an escape. Aircraft registration, type and route codes from
+  adsb.lol are the same class of data.
+- **Security response headers** — `X-Content-Type-Options`, `Referrer-Policy`,
+  `X-Frame-Options`, and a `Permissions-Policy` that allows only what the app uses
+  (geolocation, the three motion sensors the compass needs, wake lock, window management,
+  fullscreen) and denies camera, microphone, payment and USB.
+- **`postMessage` is origin-checked and no longer targets `'*'`.** The Ceiling Mode handshake
+  carries the observer's coordinates, and both listeners previously acted on a message from
+  any origin. Opaque origins (`file://`, `data:`, sandboxed frames) are detected by value
+  rather than by protocol, because passing `"null"` as a target origin throws rather than
+  silently dropping.
+- **The proxy validates paths per host**, not just hostnames, and caps the aircraft query
+  radius at the app's own 150 nm — host-only allowlisting still let anyone pull arbitrary
+  coordinates through OVERHEAD's identity and spend its reputation with the upstreams. A
+  deliberately permissive Origin/Referer check turns away casual hotlinking without ever
+  blocking the app's own Worker fetches.
+
+### Aircraft and ISS geometry
+`geoToScreen()` computed elevation as `atan2(altitude, distance)` — a flat-earth
+approximation whose arguments are both always positive, so **nothing could ever be below the
+horizon**. Harmless for an aircraft a few tens of kilometres away; badly wrong for the ISS,
+which is only visible within about 2,200 km and spends most of its orbit out of sight. The
+code downstream had always expected negatives: the ISS renderer fades out between 0° and
+−15°, and the corner readout has an "ISS BELOW HORIZON" branch, neither of which could ever
+run. Elevation is now computed on a sphere, and the ISS horizon lands where it should.
+
+### Three features that were written but never wired up
+- **Corner readouts on the ceiling** — clock, aircraft count, which way to look for the ISS,
+  active shower. Gated on a condition that could never be true, so it had never once
+  rendered. Now live in Ceiling Mode, with a toggle, since it is unavoidably extra light on
+  your ceiling.
+- **ISS pass row in UP NEXT** — the pass calculator had existed since v7.2 with nothing
+  calling it. Unlike a meteor shower, an ISS pass is a specific bright object at a specific
+  minute, which makes it the most actionable line the panel can carry.
+- **Auto-placement onto the projector** — the Window Management code existed but was never
+  called, and would have been popup-blocked as written. Ceiling Mode now moves itself onto
+  the extended display and goes fullscreen on the START SKY click.
+
+### Mobile
+The app was built for a Windows laptop and a projector; on a phone it had two media queries
+in the whole stylesheet. This release adds safe-area handling for notched displays, dynamic
+viewport units, a bottom-sheet control panel, 44 px touch targets, legible type, and — most
+importantly — **working touch selection**: the canvas only listened for `mousemove`, so
+tapping an aircraft was a coin flip. There is also an `AbortSignal.timeout` fallback,
+without which every data fetch failed silently on older iOS.
+
+### Smaller fixes
+- Screen Wake Lock, so an overnight projection is not ended by the display going to sleep.
+- `fetchISS` gained an in-flight guard; on a slow link its 5-second interval and 10-second
+  timeout meant requests stacked up.
+- Location acquisition can no longer hang forever if the browser fires neither callback, and
+  a first fix with an unknown accuracy no longer prevents the position ever refining.
+- The ISS orbit path was rebuilt every frame — roughly 5,400 projections per second for one
+  dashed line — and the fetch countdown wrote to the DOM on every frame. Both are cached.
+- webm-muxer's 69 KB is no longer parsed at startup for the majority of visitors who never
+  record anything.
+- A share image finally exists, so links to overhead.world stop rendering as bare text.
+- Dead code removed: an unreachable 61-line block, two unused functions, a list that was
+  rebuilt constantly and never read, and 21 CSS rules that could never match.
+
+### Rendering correctness: "above the horizon" is not "on the screen"
+Correcting `geoToScreen()` to real spherical geometry made below-horizon positions reachable
+for the first time, which exposed a chain of latent bugs sitting behind them.
+
+- **The off-screen sentinel is gone.** A rectilinear projection sends `r = f·tan(za)` to
+  infinity at the horizon, and the code returned direction × 1e6 as a marker — paired with an
+  `onScreen` flag that was *written three times and read zero times*. Those ±1,000,000 px
+  coordinates flowed into velocity arithmetic, trail buffers and stroked paths. Positions are
+  now clamped to a viewport diagonal: still safely outside the frame, but finite.
+- **A new `renderable` flag, because `onScreen` answers a different question.** `onScreen`
+  means *above the horizon* — an honest astronomical fact. It is not *"will this appear on
+  the ceiling"*. Measured at 1280×720 with a 100° field, everything below **24° elevation**
+  was off-frame while reporting `onScreen: true`, and everything below ~11° was pinned to the
+  same 1,469 px ring — twice the frame's half-diagonal. Trail, velocity and sprite-heading
+  guards now test `renderable` (inside the viewport plus a margin) instead.
+- **Contrails dissipate instead of freezing.** Skipping the trail push while off-screen left
+  the buffer intact, so an aircraft that set and re-emerged drew one segment joining its
+  pre-set position to its new one — and the ISS does this on every orbit. Trails now drain at
+  the rate they would fill. At the real feed cadence this took a track from 18 of 20 points
+  stranded off-frame, with a 1,082 px segment, to zero.
+- **The ISS ground track** is rebuilt from the argument of latitude with a proper unwrap, and
+  its direction of travel is no longer derived from a fabricated offline placeholder or
+  allowed to flap at the ±51.6° turnaround.
+- **The Moon's terminator was inverted.** The shadow offset read `(1−k)` where `k` is the
+  *illuminated* fraction, so a full moon was rendered as a black disc under a label saying
+  100%, and every phase in between was its own complement. Clearing the soft edge as well as
+  the hard disc needs `2.06·mr`, not `1.88·mr`.
+
+### Frame-rate independence
+Meteor motion, spawn chance, ion-train length and pulse rates were all per-frame constants
+tuned at 60 Hz, so a 120 Hz display ran the sky at double speed and halved every trail. All
+of them now scale by a measured frame delta, which is clamped at **both** ends — the upper
+bound stops a backgrounded tab taking one huge step on return, and the lower bound exists
+because the first frame's delta can be negative. Anything with a lifetime is aged against a
+simulation clock rather than wall time; the ion train previously advanced on one and expired
+on the other, collapsing to about two points in a throttled tab.
+
+### The time-lapse recorder can no longer lose your recording
+Adding a timeout to the storage-worker calls fixed a genuine stuck-state bug and introduced
+two data-loss paths, because rejection now reached cleanup code that had only ever been
+reachable on success. The governing rule is now explicit: **only a confirmed successful read
+may delete anything.**
+
+- Recovering a large capture no longer destroys it when the read exceeds the timeout. The
+  read gets 120 s, and deletion moved inside the success branch.
+- A recording preserved by a failed save now **blocks the next RECORD press** instead of
+  being silently truncated by it. The guard tested a variable the preserve path never set.
+- A failed OPFS open no longer shows an alarming "RECORDING STOPPED" toast while recording
+  works fine on the fallback tier — and, more seriously, no longer latches the
+  first-failure flag before recording starts, which had been silently swallowing every
+  genuine failure for the rest of the session.
+- A slow crash-recovery probe no longer deletes the marker, which would have orphaned the
+  file on disk: present, unreferenced, never offered again.
+- The settings selects no longer revert an unapplied change whenever a recording stops, and
+  stay locked while a save is still in flight.
+
+### Smaller correctness fixes
+- **Projector calibration could be corrupted permanently.** The pixel→fraction migration ran
+  during Ceiling Mode boot, when the window may not have laid out yet; at a zero-size
+  viewport it wrote raw pixels as fractions (one corner measured at 1,625,600 px) and then
+  deleted the legacy key. It now refuses to migrate until the viewport is sane.
+- **Simulated satellite passes actually honour their interval.** The "no satellites yet"
+  clause was re-evaluated every frame, and the filter that expires a pass ran *after* it, so
+  a new pass spawned the frame after the old one ended. Measured over 48 simulated hours:
+  45–85 s (mean 65 s) before, a uniform 120–240 s (mean 181 s) now.
+- **Aircraft sprites point the right way in a rotated view.** The fallback heading used the
+  raw compass bearing while the projection had rotated the whole sky, so with the screen
+  orientation dial at 90° every sprite using the fallback pointed 90° off. Worst-case error
+  across a full sweep: 180° before, 0.00° now.
+- Typing in the field-of-view box applies live again; reopening Ceiling Mode within three
+  seconds no longer kills the new window's handshake burst; and a back-navigation restored
+  from bfcache no longer leaves the CEILING button lit with nothing behind it.
+
 ## v10 — aircraft silhouettes (June 2026)
 
 The aircraft release. Planes stop being abstract nav-light dots and become recognisable

@@ -25,13 +25,22 @@ available under the Open Data Commons / CC BY-SA terms as applicable.
 - Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 
 OVERHEAD respects the Nominatim usage policy: requests are coordinate-rounded
-client-side (~100 m), edge-cached, sent with an identifying `User-Agent`, and
-routed through OVERHEAD's own caching proxy.
+client-side (~110 m), debounced (place search is sent only when you pause typing,
+with a 3-character minimum), edge-cached, sent with an identifying `User-Agent`,
+and routed through OVERHEAD's own caching proxy. There is no direct fallback —
+Nominatim is never contacted straight from a visitor's browser.
+
+### Flight routes — adsb.lol standing data
+When an aircraft is selected, its origin and destination airports are looked up from
+**adsb.lol**'s static route dataset (`vrs-standing-data.adsb.lol`). The lookup is
+keyed on the public callsign only and carries no location data. Same operator and
+same ODbL terms as the live position feed above; routed through the same proxy.
+- Source: https://vrs-standing-data.adsb.lol
 
 ### ISS position — wheretheiss.at
 Live International Space Station position is provided by **wheretheiss.at**, a free
 public API, routed through OVERHEAD's caching proxy (short cache TTL) like the
-aircraft and geocoding feeds.
+aircraft and geocoding feeds. As with every upstream, there is no direct fallback.
 - Source: https://wheretheiss.at
 
 ---

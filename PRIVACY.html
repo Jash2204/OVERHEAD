@@ -36,7 +36,7 @@
 <div class="wrap">
   <a class="back" href="/">&larr; OVERHEAD</a>
   <h1>Privacy Policy</h1>
-  <div class="sub">overhead.world &middot; last updated 18 June 2026</div>
+  <div class="sub">overhead.world &middot; last updated 23 August 2026</div>
 
   <div class="banner"><strong>Note:</strong> this is a good-faith draft describing how OVERHEAD
   actually handles data. It is not legal advice. Because OVERHEAD processes location data and
@@ -54,26 +54,51 @@
       Geolocation API, purely to calculate the sky above you.</li>
     <li>Your coordinates are processed <strong>in your browser</strong> and held only for the
       current session. We do not save them to a database or associate them with you.</li>
-    <li>To turn coordinates into a place name, an approximate, rounded coordinate is sent to the
-      OpenStreetMap <strong>Nominatim</strong> geocoding service (via our proxy).</li>
-    <li>To show nearby aircraft, your coordinates are sent to the <strong>adsb.lol</strong>
-      aircraft-data service (via our proxy).</li>
+    <li>To turn coordinates into a place name, a coordinate rounded to about
+      <strong>110&nbsp;m</strong> is sent to the OpenStreetMap <strong>Nominatim</strong>
+      geocoding service, through our proxy.</li>
+    <li>To show nearby aircraft, a coordinate deliberately coarsened to about
+      <strong>11&nbsp;km</strong> is sent to the <strong>adsb.lol</strong> aircraft-data service,
+      through our proxy. The aircraft query covers a 150&nbsp;nautical-mile radius, so it does not
+      need your exact position — and the coarser value also lets many nearby visitors share one
+      cached result. Your full-precision position never leaves your browser.</li>
+    <li>If you search for a place in ZENYTH, <strong>the text you type</strong> is sent to
+      Nominatim (through our proxy) to find matching places. Searches are only sent once you pause
+      typing, not on every keystroke.</li>
+    <li>If you tap an aircraft, its <strong>public callsign</strong> — not your location — is sent
+      to adsb.lol's static route dataset to look up the origin and destination airports.</li>
     <li>If you deny location, the App still works — you set a location yourself via ZENYTH, and
       nothing is read from your device.</li>
   </ul>
 
   <h2>Our proxy &amp; server logs</h2>
-  <p>Requests to the data services above are forwarded through OVERHEAD's own caching proxy. As
-  with any internet service, the underlying hosting infrastructure may transiently log standard
-  request metadata (such as IP address and the requested URL) for operation and abuse-prevention.
-  This is not used to track you or build a profile, and the proxy only ever talks to three
-  allow-listed hosts (adsb.lol, wheretheiss.at and Nominatim). Routing the ISS feed through
-  the proxy also keeps your IP address off that provider.</p>
+  <p><strong>Every</strong> live-data request the App makes goes through OVERHEAD's own caching
+  proxy — aircraft positions, the ISS, place-name lookups, place searches and flight-route
+  lookups. There is no fallback that contacts a data service directly, so those services never
+  receive your IP address or a connection from your browser. The trade-off is that live data
+  needs the proxy: if you run OVERHEAD from a local file or host a copy somewhere without the
+  proxy, the App tells you live data is unavailable, and the offline sky (stars, planets, the
+  Moon, the Milky Way) keeps working.</p>
+  <p>As with any internet service, the underlying hosting infrastructure may transiently log
+  standard request metadata (such as IP address and the requested URL) for operation and
+  abuse-prevention. This is not used to track you or build a profile.</p>
+  <p>The proxy only ever talks to four allow-listed hosts, and rejects anything else:</p>
+  <ul>
+    <li><strong>api.adsb.lol</strong> — live aircraft positions.</li>
+    <li><strong>api.wheretheiss.at</strong> — the International Space Station's position.</li>
+    <li><strong>nominatim.openstreetmap.org</strong> — place names and place search.</li>
+    <li><strong>vrs-standing-data.adsb.lol</strong> — adsb.lol's static flight-route dataset,
+      queried by callsign when you tap an aircraft. It receives no location data.</li>
+  </ul>
 
   <h2>On-device storage</h2>
   <ul>
-    <li>The App uses your browser's local storage to remember a few preferences (e.g. render
-      scale and time-lapse settings). This stays on your device.</li>
+    <li>The App uses your browser's local storage to remember a few non-identifying
+      preferences: render scale, projector corner calibration, Ceiling Mode settings
+      (mirroring, compass rotation, sky preset), whether alerts are muted, whether the
+      "up next" panel is shown, whether you have seen the intro tour, and your time-lapse
+      settings. This stays on your device. <strong>Your location is not among them</strong> —
+      it is never written to storage, and you set it again each visit.</li>
     <li>Time-lapse recordings are created and stored <strong>locally</strong> (your Downloads
       folder and a private in-browser file area). They are never uploaded to us.</li>
     <li>The optional mobile <strong>facing compass</strong> reads your device's orientation
@@ -109,9 +134,10 @@
   </ul>
 
   <h2>Third-party services</h2>
-  <p>When the App contacts adsb.lol, wheretheiss.at or OpenStreetMap/Nominatim, those services
-  receive the request and operate under their own privacy terms. See the
-  <a href="NOTICE.md">attribution notice</a> for links.</p>
+  <p>When the App contacts adsb.lol (live positions and the static route dataset),
+  wheretheiss.at or OpenStreetMap/Nominatim, those services receive the request from our proxy
+  and operate under their own privacy terms. See the
+  <a href="NOTICE.html">attribution notice</a> for links.</p>
 
   <h2>Your rights (UK/EU GDPR)</h2>
   <p>Because the App does not store personal data about you, there is normally nothing for us to
@@ -131,7 +157,7 @@
   <p>Questions about privacy: <a href="https://github.com/Jash2204">github.com/Jash2204</a>.</p>
 
   <footer>OVERHEAD &middot; <a href="TERMS.html">Terms of Use</a> &middot;
-    <a href="NOTICE.md">Notices &amp; Attribution</a></footer>
+    <a href="NOTICE.html">Notices &amp; Attribution</a></footer>
 </div>
 </body>
 </html>
