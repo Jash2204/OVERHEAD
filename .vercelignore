@@ -5,7 +5,14 @@ sprites/
 
 # Local-development only: the standalone Node CORS proxy and the Windows launcher.
 # Production uses the serverless function in api/proxy.js instead.
-proxy.js
-START.bat
-QUICKSTART.md
-CSP-DRAFT.md
+#
+# The leading slash on /proxy.js is LOAD-BEARING. .vercelignore uses .gitignore
+# syntax, where a pattern containing no slash matches a file of that name at ANY
+# depth — so a bare `proxy.js` also matched `api/proxy.js` and excluded the
+# serverless function from the deployment. Every /api/proxy request then returned
+# 404, and since the direct-to-upstream fallback was deliberately removed, that
+# left the live site with no aircraft, no ISS and no geocoding at all.
+/proxy.js
+/START.bat
+/QUICKSTART.md
+/CSP-DRAFT.md
